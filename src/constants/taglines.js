@@ -1,3 +1,5 @@
+// Taglines used when registering the dog
+
 const dogTaglines = [
   "The Treats Detective",
   "Barking Up the Right Tree",
