@@ -1,3 +1,5 @@
+// helper file for import/export of images
+
 import logo from "../assets/logo.png";
 import park from "../assets/park.png";
 import dog_eating from "../assets/dog_eating.png";
