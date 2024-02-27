@@ -43,3 +43,4 @@ yarn-error.*
 .history
 /.history
 .history/
+/.history/
