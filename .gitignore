@@ -40,3 +40,6 @@ yarn-error.*
 *.tsbuildinfo
 
 
+.history
+/.history
+.history/
