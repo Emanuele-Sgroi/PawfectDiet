@@ -29,7 +29,7 @@ import { db } from "../../../firebaseConfig";
 // ──────────────────────────────────────────────────────────────────────────────
 // Constants
 // ──────────────────────────────────────────────────────────────────────────────
-const SPLASH_DURATION_MS = 2_000; // 3‑second delay before auto‑routing
+const SPLASH_DURATION_MS = 3_000; // 3‑second delay before auto‑routing
 
 /**
  * Calculates a responsive logo size (95 % of screen width, capped at 600).
