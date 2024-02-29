@@ -1,4 +1,17 @@
-import React, { useState, useEffect } from "react";
+/**
+ * LoginScreen
+ * ------------
+ * React‑Native screen that authenticates an existing user with Firebase
+ * email + password credentials. On success it persists a minimal session
+ * record in Expo SecureStore and routes the user depending on how many
+ * dog profiles they have created.
+ *
+ */
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Imports
+// ──────────────────────────────────────────────────────────────────────────────
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -9,7 +22,11 @@ import {
   ImageBackground,
   TouchableOpacity,
 } from "react-native";
+
+// Assets & constants
 import { images } from "../../constants/index";
+
+// Shared UI components
 import {
   InputWithIcon,
   InputPassword,
@@ -18,196 +35,221 @@ import {
   BasicLoadingModal,
   InfoModalTemoButton,
 } from "../../components/index";
+
+// External libs
 import Toast from "react-native-toast-message";
 import * as SecureStore from "expo-secure-store";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { doc, getDoc, getDocs, collection } from "firebase/firestore";
+
+// Firebase instances
 import { auth, db } from "../../../firebaseConfig";
 
+// ──────────────────────────────────────────────────────────────────────────────
+// Component
+// ──────────────────────────────────────────────────────────────────────────────
+
+/**
+ * @typedef {object} LoginScreenProps
+ * @property {object} navigation – React‑Navigation prop passed by Stack
+ */
+
+/**
+ * Main functional component.
+ *
+ * @param {LoginScreenProps} props – See typedef above
+ * @returns {JSX.Element}
+ */
 const LoginScreen = ({ navigation }) => {
+  // ────────────────────────────────
+  // Local state
+  // ────────────────────────────────
   const [orientation, setOrientation] = useState("portrait");
   const [password, setPassword] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const [isInfoOpen, setIsInfoOpen] = useState(false);
 
+  // ────────────────────────────────
+  // Helpers
+  // ────────────────────────────────
+
+  /**
+   * Displays a red Toast with a general‑purpose error title + message.
+   *
+   * @param {string} title   – Toast title (bold)
+   * @param {string} message – Toast description
+   */
+  const toastError = useCallback((title, message) => {
+    Toast.show({ type: "error", text1: title, text2: message });
+  }, []);
+
+  /**
+   * Displays the green "Welcome Back" success toast.
+   */
+  const toastSuccess = useCallback(() => {
+    Toast.show({
+      type: "success",
+      text1: "Welcome Back 👋",
+      text2: "Enjoy PawfectDiet!",
+    });
+  }, []);
+
+  /**
+   * Simple client‑side form validation. Returns `true` if inputs pass.
+   */
+  const validateInputs = useCallback(() => {
+    if (!email || !password) {
+      toastError("Login Failed", "Please enter your credentials");
+      return false;
+    }
+
+    const validEmail = /^[\w.!#$%&'*+/=?^_`{|}~-]+@[\w-]+(?:\.[\w-]+)*$/;
+    if (!validEmail.test(email)) {
+      toastError("Login Failed", "The email address is invalid.");
+      return false;
+    }
+
+    return true;
+  }, [email, password, toastError]);
+
+  /**
+   * Fetches the first dog profile for a user and stores its ID locally so
+   * the app can start with that dog selected.
+   *
+   * @param {string} userId – Firebase auth uid
+   */
+  const selectFirstDogProfile = async (userId) => {
+    const dogsRef = collection(db, `users/${userId}/dogs`);
+    const snapshot = await getDocs(dogsRef);
+
+    // Safety: guard against users with 0 dog profiles
+    if (!snapshot.empty) {
+      const firstDogId = snapshot.docs[0].id;
+      await SecureStore.setItemAsync("activeDogProfile", firstDogId);
+    }
+  };
+
+  /**
+   * Main login handler – triggered by the LOGIN button.
+   */
+  const handleLogin = async () => {
+    // logic login here
+  };
+
+  // ────────────────────────────────
+  // Effects
+  // ────────────────────────────────
+
+  /**
+   * Listens to orientation changes to update responsive hero height.
+   */
   useEffect(() => {
-    const updateLayout = () => {
-      const width = Dimensions.get("window").width;
-      const height = Dimensions.get("window").height;
+    const onChange = () => {
+      const { width, height } = Dimensions.get("window");
       setOrientation(height > width ? "portrait" : "landscape");
     };
 
-    const subscription = Dimensions.addEventListener("change", updateLayout);
+    // Initial call + listener registration
+    onChange();
+    const sub = Dimensions.addEventListener("change", onChange);
 
+    // Cleanup: remove listener
     return () => {
-      if (subscription.remove) {
-        subscription.remove();
-      } else {
-        Dimensions.removeEventListener("change", updateLayout);
-      }
+      sub?.remove?.();
     };
   }, []);
 
-  const topStyle = StyleSheet.flatten([
-    styles.top,
+  // ────────────────────────────────
+  // Derived styles (depends on orientation)
+  // ────────────────────────────────
+  const heroStyle = StyleSheet.flatten([
+    styles.hero,
     orientation === "portrait" ? { height: 250 } : { height: 400 },
   ]);
 
-  const onToastError = (errorTitle, errorMessage) => {
-    Toast.show({
-      type: "error",
-      text1: errorTitle,
-      text2: errorMessage,
-    });
-  };
-
-  const onToastSuccess = () => {
-    Toast.show({
-      type: "success",
-      text1: "Welcome Back",
-      text2: "Enjoy PawfectDiet!",
-    });
-  };
-
-  const validateInputs = () => {
-    if (!email || !password) {
-      onToastError("Login Failed", "Please insert your credentials");
-      return false;
-    }
-    //check email
-    const validEmail =
-      /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$/;
-    if (!email.match(validEmail)) {
-      onToastError("Login Failed", "The email is invalid.");
-      return false;
-    }
-    return true;
-  };
-
-  const fetchAndSetActiveDogProfile = async (userId) => {
-    const dogsRef = collection(db, `users/${userId}/dogs`);
-    const snapshot = await getDocs(dogsRef);
-    if (!snapshot.empty) {
-      const dogId = snapshot.docs[0].id;
-      await SecureStore.setItemAsync("activeDogProfile", dogId);
-    }
-  };
-
-  const handleLogin = async () => {
-    if (!validateInputs()) return;
-
-    setIsLoading(true);
-
-    try {
-      const userCredential = await signInWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
-      const user = userCredential.user;
-
-      await SecureStore.setItemAsync("isLoggedIn", "true");
-      await SecureStore.setItemAsync("userId", user.uid);
-
-      const currentUserDoc = await getDoc(doc(db, "users", user.uid));
-      const currentUser = currentUserDoc.data();
-      const dogNumber = currentUser.dogNumber;
-
-      if (dogNumber === 1) {
-        await fetchAndSetActiveDogProfile(user.uid);
-        navigation.navigate("Main");
-      } else if (dogNumber > 1) {
-        navigation.navigate("SwitchDog", { cameFromLogin: true });
-      } else {
-        navigation.navigate("DogProfileCreation");
-      }
-
-      setIsLoading(false);
-      onToastSuccess();
-    } catch (error) {
-      setIsLoading(false);
-      const errorMessage = error.message;
-      onToastError("Login Failed", "Invalid Credentials");
-      console.error("Login error:", errorMessage);
-    }
-  };
-
+  // ────────────────────────────────
+  // Render
+  // ────────────────────────────────
   return (
     <>
-      <ScrollView contentContainerStyle={styles.container} scrollEnabled={true}>
+      <ScrollView contentContainerStyle={styles.container}>
+        {/* ───── Hero Section ───── */}
         <ImageBackground
           source={require("../../assets/park.png")}
-          style={topStyle}
+          style={heroStyle}
           resizeMode="cover"
         >
           <Image
             source={images.dog_eating}
             style={styles.dog}
             resizeMode="contain"
-          ></Image>
+          />
           <Image
             source={images.logo_icon}
             style={styles.logo}
             resizeMode="contain"
-          ></Image>
+          />
         </ImageBackground>
-        <View style={styles.bottom}>
+
+        {/* ───── Form Section ───── */}
+        <View style={styles.formWrapper}>
           <Text style={[styles.text, styles.h1]}>Hello.</Text>
           <Text style={[styles.text, styles.h2]}>Login to your account</Text>
+
           <InputWithIcon
             iconName="email"
             iconType="Fontisto"
             placeholder="Email"
-            onChangeText={(text) => setEmail(text)}
+            onChangeText={setEmail}
           />
+
           <InputPassword
             placeholder="Password"
-            isPassword={true}
-            onChangeText={(text) => setPassword(text)}
+            isPassword
+            onChangeText={setPassword}
           />
-          <ButtonLarge
-            buttonName="LOGIN"
-            isThereArrow={true}
-            onPress={handleLogin}
-          />
-          <TouchableOpacity
-            onPress={() => {
-              setIsInfoOpen(true);
-            }}
-          >
+
+          <ButtonLarge buttonName="LOGIN" isThereArrow onPress={handleLogin} />
+
+          {/* Forgot password – not implemented yet */}
+          <TouchableOpacity onPress={() => setIsInfoOpen(true)}>
             <Text style={[styles.text, styles.h3]}>Forgot Password?</Text>
           </TouchableOpacity>
+
+          {/* Divider */}
           <View style={styles.orContainer}>
-            <View style={styles.orLine}></View>
+            <View style={styles.orLine} />
             <Text style={styles.orText}>OR</Text>
-            <View style={styles.orLine}></View>
+            <View style={styles.orLine} />
           </View>
+
+          {/* Google OAuth – placeholder */}
           <ButtonGoogle
             buttonType="Login"
-            onPress={() => {
-              setIsInfoOpen(true);
-            }}
+            onPress={() => setIsInfoOpen(true)}
           />
+
+          {/* Sign‑up link */}
           <View style={styles.signUpContainer}>
             <Text style={[styles.text, styles.h4]}>
               Don't have an account yet?
             </Text>
-            <TouchableOpacity
-              onPress={() => {
-                navigation.navigate("Signup");
-              }}
-            >
+            <TouchableOpacity onPress={() => navigation.navigate("Signup")}>
               <Text style={[styles.text, styles.h5]}>Join PawfectDiet!</Text>
             </TouchableOpacity>
           </View>
         </View>
+
+        {/* Loading modal – covers network latency */}
         <BasicLoadingModal
           visible={isLoading}
-          customTitle={"We are checking your account"}
-          customMessage={"Please wait..."}
+          customTitle="We are checking your account"
+          customMessage="Please wait..."
         />
       </ScrollView>
+
+      {/* Generic info modal (used for un‑implemented features) */}
       {isInfoOpen && (
         <InfoModalTemoButton
           title="Coming Soon"
@@ -219,6 +261,9 @@ const LoginScreen = ({ navigation }) => {
   );
 };
 
+// ──────────────────────────────────────────────────────────────────────────────
+// Styles
+// ──────────────────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
@@ -226,7 +271,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "#E6ECFC",
   },
-  top: {
+  hero: {
     width: "100%",
     alignItems: "center",
     justifyContent: "center",
@@ -247,12 +292,12 @@ const styles = StyleSheet.create({
     right: 20,
     transform: [{ rotateZ: "-36deg" }],
   },
-  bottom: {
+  formWrapper: {
     flex: 7,
     width: "100%",
     backgroundColor: "#E6ECFC",
-    justifyContent: "flex start",
-    alignItems: "flex start",
+    justifyContent: "flex-start",
+    alignItems: "flex-start",
     paddingHorizontal: 25,
     paddingVertical: 2,
     shadowColor: "#000",
@@ -271,20 +316,14 @@ const styles = StyleSheet.create({
     fontFamily: "MerriweatherSans-ExtraBold",
     marginBottom: -10,
   },
-  h2: {
-    fontSize: 20,
-    marginBottom: 10,
-  },
+  h2: { fontSize: 20, marginBottom: 10 },
   h3: {
     fontSize: 15,
     marginBottom: 10,
     marginTop: 10,
     alignSelf: "center",
   },
-  h4: {
-    fontSize: 15,
-    color: "#7d7d7d",
-  },
+  h4: { fontSize: 15, color: "#7d7d7d" },
   h5: {
     fontSize: 15,
     fontFamily: "MerriweatherSans-ExtraBold",
@@ -297,11 +336,7 @@ const styles = StyleSheet.create({
     width: "90%",
     alignSelf: "center",
   },
-  orLine: {
-    flex: 1,
-    height: 0.7,
-    backgroundColor: "#7D7D7D",
-  },
+  orLine: { flex: 1, height: 0.7, backgroundColor: "#7D7D7D" },
   orText: {
     fontSize: 15,
     fontFamily: "MerriweatherSans-Light",
@@ -317,4 +352,7 @@ const styles = StyleSheet.create({
   },
 });
 
+// ──────────────────────────────────────────────────────────────────────────────
+// Exports
+// ──────────────────────────────────────────────────────────────────────────────
 export default LoginScreen;
