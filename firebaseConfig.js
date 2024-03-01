@@ -1,3 +1,5 @@
+// Config file for firebase
+
 import { initializeApp, getApp } from "firebase/app";
 import {
   initializeAuth,
