@@ -134,7 +134,44 @@ const LoginScreen = ({ navigation }) => {
    * Main login handler – triggered by the LOGIN button.
    */
   const handleLogin = async () => {
-    // logic login here
+    if (!validateInputs()) return; // early escape on validation failure
+
+    setIsLoading(true);
+
+    try {
+      // Firebase email|password authentication
+      const credential = await signInWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
+      const { user } = credential;
+
+      // Persist minimal session details locally
+      await SecureStore.setItemAsync("isLoggedIn", "true");
+      await SecureStore.setItemAsync("userId", user.uid);
+
+      // Fetch user doc to check how many dogs they have created
+      const userDoc = await getDoc(doc(db, "users", user.uid));
+      const { dogNumber } = userDoc.data();
+
+      // Conditional navigation based on dog profile count
+      if (dogNumber === 1) {
+        await selectFirstDogProfile(user.uid);
+        navigation.navigate("Main");
+      } else if (dogNumber > 1) {
+        navigation.navigate("SwitchDog", { cameFromLogin: true });
+      } else {
+        navigation.navigate("DogProfileCreation");
+      }
+
+      toastSuccess();
+    } catch (err) {
+      console.error("Login error:", err.message);
+      toastError("Login Failed", "Invalid credentials");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // ────────────────────────────────
