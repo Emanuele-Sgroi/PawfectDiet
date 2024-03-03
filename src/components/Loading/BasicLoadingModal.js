@@ -1,4 +1,9 @@
-// LoadingModal.js
+/**
+ * BasicLoadingModal
+ * -------------------
+ * Simple modal overlay presenting a title, message, and a single OK
+ * action button.
+ */
 import React, { useEffect, useRef } from "react";
 import { Modal, View, Text, StyleSheet, Animated, Easing } from "react-native";
 import { images } from "../../constants";
