@@ -1,51 +1,39 @@
-import React, { useState, useEffect } from "react";
-import { View, Image, StyleSheet, Text, TouchableOpacity } from "react-native";
+/**
+ * ButtonGoogle
+ * ------------
+ * Google‑branded sign‑in / sign‑up button.
+ */
+import React from "react";
+import { View, StyleSheet, Text, TouchableOpacity, Image } from "react-native";
 import { images } from "../../constants";
 
-const ButtonGoogle = ({ buttonType, onPress }) => {
-  return (
-    <TouchableOpacity onPress={onPress} style={styles.buttonContainer}>
-      <View style={styles.buttonSubContainer}>
-        <Image source={images.google} style={styles.iconStyle} />
-        <Text style={styles.textButtonStyle}>{buttonType} with </Text>
-        <Text style={styles.textButtonStyle2}>Google</Text>
-      </View>
-    </TouchableOpacity>
-  );
-};
+const ButtonGoogle = ({ buttonType = "Login", onPress }) => (
+  <TouchableOpacity onPress={onPress} style={styles.container}>
+    <View style={styles.inner}>
+      <Image source={images.google} style={styles.icon} />
+      <Text style={styles.label}>{buttonType} with </Text>
+      <Text style={styles.labelBold}>Google</Text>
+    </View>
+  </TouchableOpacity>
+);
 
 const styles = StyleSheet.create({
-  buttonContainer: {
-    height: "auto",
-    marginVertical: 10,
-  },
-  buttonSubContainer: {
+  container: { marginVertical: 10 },
+  inner: {
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    width: "auto",
-    height: "auto",
   },
-  iconStyle: {
-    marginRight: 10,
-    width: 46,
-    height: 46,
-  },
-  textButtonStyle: {
+  icon: { width: 46, height: 46, marginRight: 10 },
+  label: {
     fontSize: 20,
     fontFamily: "MerriweatherSans-Regular",
-    padding: 0,
-    textAlignVertical: "center",
     color: "#7D7D7D",
-    includeFontPadding: false,
   },
-  textButtonStyle2: {
+  labelBold: {
     fontSize: 20,
     fontFamily: "MerriweatherSans-ExtraBold",
-    padding: 0,
-    textAlignVertical: "center",
     color: "#F14336",
-    includeFontPadding: false,
   },
 });
 
