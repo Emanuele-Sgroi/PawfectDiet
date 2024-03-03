@@ -1,3 +1,8 @@
+/**
+ * InputPassword
+ * -------------
+ * Password input with an optional "Show/Hide" toggle.
+ */
 import React, { useState } from "react";
 import {
   View,
@@ -6,29 +11,27 @@ import {
   TouchableOpacity,
   Text,
 } from "react-native";
-import Icon from "react-native-vector-icons/AntDesign";
+import AntDesign from "react-native-vector-icons/AntDesign";
 
-const InputPassword = ({ isPassword, placeholder, onChangeText }) => {
-  const [secureTextEntry, setSecureTextEntry] = useState(isPassword);
-
+const InputPassword = ({
+  isPassword = true,
+  placeholder = "",
+  onChangeText,
+}) => {
+  const [hidden, setHidden] = useState(isPassword);
   return (
-    <View style={styles.inputContainer}>
-      <Icon name="lock1" size={22} color="#000" style={styles.iconStyle} />
+    <View style={styles.container}>
+      <AntDesign name="lock1" size={22} color="#000" style={styles.icon} />
       <TextInput
         placeholder={placeholder}
-        secureTextEntry={secureTextEntry}
-        onChangeText={onChangeText}
         placeholderTextColor="#7D7D7D"
-        style={styles.textInputStyle}
+        secureTextEntry={hidden}
+        style={styles.input}
+        onChangeText={onChangeText}
       />
       {isPassword && (
-        <TouchableOpacity
-          onPress={() => setSecureTextEntry((prev) => !prev)}
-          style={styles.toggleVisibility}
-        >
-          <Text style={styles.toggleText}>
-            {secureTextEntry ? "Show" : "Hide"}
-          </Text>
+        <TouchableOpacity onPress={() => setHidden((p) => !p)}>
+          <Text style={styles.toggle}>{hidden ? "Show" : "Hide"}</Text>
         </TouchableOpacity>
       )}
     </View>
@@ -36,34 +39,27 @@ const InputPassword = ({ isPassword, placeholder, onChangeText }) => {
 };
 
 const styles = StyleSheet.create({
-  inputContainer: {
+  container: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "white",
+    backgroundColor: "#FFFFFF",
     width: "100%",
     height: 32,
-    borderRadius: 0,
-    shadowColor: "#000000",
+    elevation: 8,
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
     shadowRadius: 4,
-    elevation: 8,
     paddingHorizontal: 10,
     marginVertical: 10,
   },
-  textInputStyle: {
+  icon: { marginRight: 5 },
+  input: {
     flex: 1,
     paddingHorizontal: 10,
     fontFamily: "MerriweatherSans-Regular",
   },
-  iconStyle: {
-    marginRight: 5,
-  },
-  toggleVisibility: {},
-  toggleText: {
-    textDecorationLine: "underline",
-    color: "#000000",
-  },
+  toggle: { textDecorationLine: "underline", color: "#000" },
 });
 
 export default InputPassword;
