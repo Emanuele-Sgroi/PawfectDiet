@@ -1,22 +1,37 @@
-import React, { useState } from "react";
+/**
+ * ButtonBackAuth
+ * --------------
+ * Reusable circular "back" button that sits on top of authentication
+ * screens. Accepts optional `size` + `color` overrides for flexibility.
+ */
+import React from "react";
 import { StyleSheet, TouchableOpacity } from "react-native";
-import Icon from "react-native-vector-icons/MaterialIcons";
+import MaterialIcons from "react-native-vector-icons/MaterialIcons";
 
-const ButtonBackAuth = ({ onPress }) => {
-  return (
-    <TouchableOpacity onPress={onPress} style={styles.buttonContainer}>
-      <Icon
-        name="arrow-back-ios"
-        size={26}
-        color="#181C39"
-        style={styles.iconStyle}
-      />
-    </TouchableOpacity>
-  );
-};
+/**
+ * @param {object}   props
+ * @param {function} props.onPress – Callback when pressed
+ * @param {number=}  props.size    – Icon size (default 26)
+ * @param {string=}  props.color   – Icon colour (default #181C39)
+ */
+const ButtonBackAuth = ({ onPress, size = 26, color = "#181C39" }) => (
+  <TouchableOpacity
+    onPress={onPress}
+    style={styles.container}
+    accessibilityRole="button"
+    accessibilityLabel="Back"
+  >
+    <MaterialIcons
+      name="arrow-back-ios"
+      size={size}
+      color={color}
+      style={styles.icon}
+    />
+  </TouchableOpacity>
+);
 
 const styles = StyleSheet.create({
-  buttonContainer: {
+  container: {
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "#E6ECFC",
@@ -25,11 +40,7 @@ const styles = StyleSheet.create({
     borderRadius: 100,
     zIndex: 999,
   },
-  iconStyle: {
-    padding: 0,
-    includeFontPadding: false,
-    marginLeft: 8,
-  },
+  icon: { marginLeft: 8 },
 });
 
-export default ButtonBackAuth;
+export default React.memo(ButtonBackAuth);
