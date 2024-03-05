@@ -1,5 +1,5 @@
 /* This file acts like a database.
-The following data come from realistic products however it might presents some inaccuracy */
+The following data come from realistic products however it might presents some inaccuracy. Please take this as an example only */
 
 export const dogCommercialFoodData = [
   // wet food entry 1
