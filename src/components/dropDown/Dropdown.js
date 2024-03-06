@@ -1,3 +1,11 @@
+/*
+  Dropdown
+  --------
+  Minimal picker built with a button + modal + FlatList. Tap the field,
+  modal slides up, tap an item to select, we close and bubble the value
+  back up.
+*/
+
 import React, { useState } from "react";
 import {
   View,
@@ -8,42 +16,44 @@ import {
   FlatList,
 } from "react-native";
 
-const Dropdown = ({ data, onSelect, placeholder, selectedValue }) => {
-  const [isVisible, setIsVisible] = useState(false);
-  const [selectedItem, setSelectedItem] = useState(
-    selectedValue || placeholder
-  );
+const Dropdown = ({
+  data,
+  onSelect,
+  placeholder = "Select",
+  selectedValue,
+}) => {
+  const [visible, setVisible] = useState(false);
+  const [selected, setSelected] = useState(selectedValue || placeholder);
 
-  const handleSelect = (item) => {
-    setSelectedItem(item);
-    setIsVisible(false);
+  const pick = (item) => {
+    setSelected(item);
+    setVisible(false);
     onSelect(item);
   };
 
   return (
     <View>
-      <TouchableOpacity
-        style={styles.button}
-        onPress={() => setIsVisible(true)}
-      >
-        <Text style={styles.buttonText}>{selectedItem}</Text>
+      <TouchableOpacity style={styles.button} onPress={() => setVisible(true)}>
+        <Text style={styles.buttonText}>{selected}</Text>
       </TouchableOpacity>
+
       <Modal
-        transparent={true}
-        visible={isVisible}
-        onRequestClose={() => setIsVisible(false)}
+        transparent
+        visible={visible}
+        onRequestClose={() => setVisible(false)}
       >
         <TouchableOpacity
-          style={styles.modalOverlay}
-          onPress={() => setIsVisible(false)}
+          style={styles.overlay}
+          activeOpacity={1}
+          onPressOut={() => setVisible(false)}
         >
-          <View style={styles.modalContent}>
+          <View style={styles.sheet}>
             <FlatList
               data={data}
-              keyExtractor={(item, index) => index.toString()}
+              keyExtractor={(item, i) => i.toString()}
               renderItem={({ item }) => (
-                <TouchableOpacity onPress={() => handleSelect(item)}>
-                  <Text style={styles.itemText}>{item}</Text>
+                <TouchableOpacity onPress={() => pick(item)}>
+                  <Text style={styles.item}>{item}</Text>
                 </TouchableOpacity>
               )}
             />
@@ -56,40 +66,32 @@ const Dropdown = ({ data, onSelect, placeholder, selectedValue }) => {
 
 const styles = StyleSheet.create({
   button: {
-    backgroundColor: "white",
+    backgroundColor: "#FFFFFF",
     width: "100%",
     height: 32,
-    borderRadius: 0,
-    shadowColor: "#000000",
+    elevation: 8,
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
     shadowRadius: 4,
-    elevation: 8,
-    marginVertical: 10,
     justifyContent: "center",
     alignItems: "center",
+    marginVertical: 10,
   },
-  buttonText: {
-    textAlign: "center",
-    fontFamily: "MerriweatherSans-Regular",
-    marginBottom: 2,
-  },
-  modalOverlay: {
+  buttonText: { fontFamily: "MerriweatherSans-Regular" },
+  overlay: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "#00000099",
   },
-  modalContent: {
-    backgroundColor: "white",
+  sheet: {
+    backgroundColor: "#FFFFFF",
     padding: 20,
     borderRadius: 5,
     width: "80%",
   },
-  itemText: {
-    padding: 10,
-    textAlign: "center",
-  },
+  item: { padding: 10, textAlign: "center" },
 });
 
-export default Dropdown;
+export default React.memo(Dropdown);
