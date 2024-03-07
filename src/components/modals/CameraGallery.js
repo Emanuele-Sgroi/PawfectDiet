@@ -1,4 +1,10 @@
-import React, { useState } from "react";
+/*
+  CameraGallery
+  -------------
+  Tiny overlay: choose Gallery or Camera, or hit the red X to bail out.
+*/
+
+import React from "react";
 import {
   View,
   StyleSheet,
@@ -6,35 +12,33 @@ import {
   Image,
   Pressable,
 } from "react-native";
-import Icon from "react-native-vector-icons/AntDesign";
-import { images } from "../../constants/index";
+import AntDesign from "react-native-vector-icons/AntDesign";
+import { images } from "../../constants";
 
-const CameraGallery = ({ onGalleryPress, onCameraPress, onClosePress }) => {
-  return (
-    <>
-      <View style={styles.container}>
-        <View style={styles.modal}>
-          <TouchableOpacity style={styles.button} onPress={onGalleryPress}>
-            <Image source={images.gallery} style={styles.img} />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.button} onPress={onCameraPress}>
-            <Image source={images.camera} style={styles.img} />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.close} onPress={onClosePress}>
-            <Icon name="close" color="red" size={20} />
-          </TouchableOpacity>
-        </View>
-        <Pressable style={styles.touchableView} onPress={onClosePress} />
-      </View>
-    </>
-  );
-};
+const CameraGallery = ({ onGalleryPress, onCameraPress, onClosePress }) => (
+  <View style={styles.container}>
+    {/* modal */}
+    <View style={styles.modal}>
+      {[
+        { img: images.gallery, fn: onGalleryPress },
+        { img: images.camera, fn: onCameraPress },
+      ].map(({ img, fn }) => (
+        <TouchableOpacity key={img} style={styles.button} onPress={fn}>
+          <Image source={img} style={styles.img} />
+        </TouchableOpacity>
+      ))}
+      <TouchableOpacity style={styles.close} onPress={onClosePress}>
+        <AntDesign name="close" color="red" size={20} />
+      </TouchableOpacity>
+    </View>
+    {/* dim background */}
+    <Pressable style={styles.touchableView} onPress={onClosePress} />
+  </View>
+);
 
 const styles = StyleSheet.create({
   container: {
-    width: "100%",
-    height: "100%",
-    position: "absolute",
+    ...StyleSheet.absoluteFillObject,
     justifyContent: "center",
     alignItems: "center",
     zIndex: 800,
@@ -42,11 +46,11 @@ const styles = StyleSheet.create({
   modal: {
     paddingHorizontal: 50,
     paddingVertical: 70,
-    zIndex: 901,
-    backgroundColor: "#ffffff",
+    backgroundColor: "#FFFFFF",
     borderRadius: 15,
     flexDirection: "row",
     gap: 50,
+    elevation: 10,
   },
   button: {
     padding: 15,
@@ -54,23 +58,13 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     justifyContent: "center",
     alignItems: "center",
-    elevation: 10,
   },
-  img: {
-    width: 35,
-    height: 35,
-  },
-  close: {
-    position: "absolute",
-    top: 10,
-    right: 10,
-  },
+  img: { width: 35, height: 35 },
+  close: { position: "absolute", top: 10, right: 10 },
   touchableView: {
-    height: "100%",
-    width: "100%",
-    position: "absolute",
+    ...StyleSheet.absoluteFillObject,
     backgroundColor: "#00000040",
   },
 });
 
-export default CameraGallery;
+export default React.memo(CameraGallery);
