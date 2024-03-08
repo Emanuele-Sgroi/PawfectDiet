@@ -1,77 +1,74 @@
+/*
+  ProfileCreationSteps
+  --------------------
+  • Shows four little paw icons – one for each step in the dog‑profile wizard.
+  • Highlights the current step in white.
+  • Gives the user a “Go Previous Step” link and an info button explaining
+    why we need so much data.
+*/
+
 import React, { useState } from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
-import Icon from "react-native-vector-icons/FontAwesome";
-import Info from "react-native-vector-icons/Feather";
+import FontAwesome from "react-native-vector-icons/FontAwesome";
+import Feather from "react-native-vector-icons/Feather";
 
+/**
+ * @param {object} props
+ * @param {() => void} props.onPress   Callback for the “previous” link
+ * @param {1|2|3|4}   props.currentStep Current wizard step (1‑4)
+ */
 const ProfileCreationSteps = ({ onPress, currentStep }) => {
-  const [isInfoOpen, setIsInfoOpen] = useState(false);
+  const [infoOpen, setInfoOpen] = useState(false);
 
   return (
     <>
+      {/* ── Main bar ── */}
       <View style={styles.container}>
+        {/* Paw icons */}
         <View style={styles.stepsContainer}>
-          <TouchableOpacity>
-            <Icon
+          {[1, 2, 3, 4].map((n) => (
+            <FontAwesome
+              key={n}
               name="paw"
               size={24}
-              color={currentStep >= 1 ? "#ffffff" : "#181C39"}
+              color={currentStep >= n ? "#FFFFFF" : "#181C39"}
               style={styles.icon}
             />
-          </TouchableOpacity>
-          <TouchableOpacity>
-            <Icon
-              name="paw"
-              size={24}
-              color={currentStep >= 2 ? "#ffffff" : "#181C39"}
-              style={styles.icon}
-            />
-          </TouchableOpacity>
-          <TouchableOpacity>
-            <Icon
-              name="paw"
-              size={24}
-              color={currentStep >= 3 ? "#ffffff" : "#181C39"}
-              style={styles.icon}
-            />
-          </TouchableOpacity>
-          <TouchableOpacity>
-            <Icon
-              name="paw"
-              size={24}
-              color={currentStep === 4 ? "#ffffff" : "#181C39"}
-              style={styles.icon}
-            />
-          </TouchableOpacity>
+          ))}
         </View>
 
+        {/* Previous link */}
         {currentStep > 1 ? (
           <TouchableOpacity onPress={onPress}>
-            <Text style={styles.h2}>Go Previous Step</Text>
+            <Text style={styles.linkActive}>Go Previous Step</Text>
           </TouchableOpacity>
         ) : (
-          <Text style={styles.h2NoActive}>Go Previous Step</Text>
+          <Text style={styles.linkDisabled}>Go Previous Step</Text>
         )}
 
+        {/* Info icon */}
         <TouchableOpacity
-          onPress={() => setIsInfoOpen(true)}
-          style={styles.info}
+          onPress={() => setInfoOpen(true)}
+          style={styles.infoBtn}
         >
-          <Info name="info" size={24} color="#ffffff" />
+          <Feather name="info" size={24} color="#FFFFFF" />
         </TouchableOpacity>
       </View>
-      {isInfoOpen && (
-        <View style={styles.infoContainer}>
-          <View style={styles.infoModal}>
-            <Text style={styles.h1}>Why do we need these info?</Text>
+
+      {/* ── Info modal ── */}
+      {infoOpen && (
+        <View style={styles.overlay}>
+          <View style={styles.modalCard}>
+            <Text style={styles.h1}>Why do we need this info?</Text>
             <Text style={styles.p}>
-              We know it's a lot, but the more information you give us, the more
-              the AI will be accurate!
+              We know it’s a lot, but the more you share, the better the AI can
+              personalise your dog’s plan.
             </Text>
             <TouchableOpacity
-              onPress={() => setIsInfoOpen(false)}
-              style={styles.button}
+              onPress={() => setInfoOpen(false)}
+              style={styles.okBtn}
             >
-              <Text style={styles.buttonText}>OK</Text>
+              <Text style={styles.okText}>OK</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -82,84 +79,77 @@ const ProfileCreationSteps = ({ onPress, currentStep }) => {
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: "columns",
+    flexDirection: "column",
     alignItems: "center",
     justifyContent: "space-between",
+    backgroundColor: "#273176",
     padding: 10,
     width: "100%",
     height: 70,
-    backgroundColor: "#273176",
     position: "relative",
   },
   stepsContainer: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 5,
   },
   icon: {
     transform: [{ rotateZ: "90deg" }],
     marginHorizontal: 10,
   },
-  info: {
+  /* Previous link */
+  linkActive: {
+    marginTop: 5,
+    textDecorationLine: "underline",
+    color: "#F14336",
+  },
+  linkDisabled: {
+    marginTop: 5,
+    textDecorationLine: "underline",
+    color: "#7D7D7D",
+  },
+  /* Info icon */
+  infoBtn: {
     position: "absolute",
     right: 10,
     top: 20,
   },
-  infoContainer: {
+  /* Modal */
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
     backgroundColor: "#00000040",
-    height: "100%",
-    width: "100%",
-    paddingVertical: 20,
-    paddingHorizontal: 30,
-    position: "absolute",
     justifyContent: "center",
     alignItems: "center",
     zIndex: 800,
   },
-  infoModal: {
+  modalCard: {
     padding: 20,
-    zIndex: 901,
     backgroundColor: "#181C39",
     borderRadius: 15,
+    maxWidth: 300,
   },
   h1: {
-    zIndex: 902,
-    color: "#fff",
+    color: "#FFFFFF",
     fontFamily: "MerriweatherSans-Bold",
     fontSize: 18,
     marginBottom: 10,
   },
-  h2: {
-    marginTop: 5,
-    textDecorationStyle: "solid",
-    textDecorationLine: "underline",
-    color: "#F14336",
-  },
-  h2NoActive: {
-    marginTop: 5,
-    textDecorationStyle: "solid",
-    textDecorationLine: "underline",
-    color: "#7D7D7D",
-  },
   p: {
-    zIndex: 902,
-    color: "#fff",
+    color: "#FFFFFF",
     fontFamily: "MerriweatherSans-Light",
     marginBottom: 10,
   },
-  button: {
+  okBtn: {
     alignSelf: "center",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#fff",
-    padding: 8,
+    backgroundColor: "#FFFFFF",
+    paddingVertical: 8,
+    paddingHorizontal: 20,
     borderRadius: 2,
   },
-  buttonText: {
+  okText: {
     fontFamily: "MerriweatherSans-Bold",
     color: "#181C39",
   },
 });
 
-export default ProfileCreationSteps;
+export default React.memo(ProfileCreationSteps);
