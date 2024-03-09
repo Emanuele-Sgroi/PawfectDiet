@@ -1,3 +1,11 @@
+/*
+  Step 2 – Health & Lifestyle
+  ---------------------------
+  Here we ask about work/sport status, daily activity, weight, meds,
+  allergies, and a few gender‑specific bits. Everything gets checked
+  locally before we advance.
+*/
+
 import React, { useState } from "react";
 import {
   View,
@@ -6,12 +14,14 @@ import {
   ScrollView,
   TouchableOpacity,
 } from "react-native";
+import Toast from "react-native-toast-message";
+
 import InputWithIcon from "../inputFields/InputWithIcon";
 import ButtonLarge from "../buttons/ButtonLarge";
 import Dropdown from "../dropDown/Dropdown";
-import Toast from "react-native-toast-message";
 
 const DogProfileCreationStep2 = ({ onSubmit, name, profileData }) => {
+  // ── local state pulled from the incoming profile (if any) ──
   const [isWorkingDog, setIsWorkingDog] = useState(profileData.isWorkingDog);
   const [workType, setWorkType] = useState(profileData.workType);
   const [workDogOtherActivities, setWorkDogOtherActivities] = useState(
@@ -44,6 +54,7 @@ const DogProfileCreationStep2 = ({ onSubmit, name, profileData }) => {
     profileData.isBreastfeeding
   );
 
+  // ── dropdown lists ──
   const workOptions = [
     "Athletic and Agility Competitions",
     "Search and Rescue",
@@ -63,125 +74,90 @@ const DogProfileCreationStep2 = ({ onSubmit, name, profileData }) => {
     "Not Under Regular Medication",
   ];
 
-  const handleWorkSelection = (selection) => {
-    setIsWorkingDog(selection == "Yes");
-    if (!isWorkingDog) {
+  // ── convenience ──
+  const errorToast = () =>
+    Toast.show({ type: "error", text1: "Please fill all the information" });
+
+  // ── radio handlers ──
+  const handleWorkSelection = (yes) => {
+    setIsWorkingDog(yes);
+    if (!yes) {
       setWorkType("");
       setWorkDogOtherActivities("");
     }
-
-    if (isWorkingDog) {
-      setActivityType("");
+  };
+  const handleRecentHealthChanges = (yes) => {
+    setIsRecentHealthChange(yes);
+    if (!yes) setRecentHealthChange("");
+  };
+  const handleAllergies = (yes) => {
+    setIsAllergic(yes);
+    if (!yes) setAllergies("");
+  };
+  const handleIsPregnant = (yes) => {
+    // males can’t be pregnant
+    if (profileData.gender.toLowerCase() === "male")
+      return setIsPregnant(false);
+    setIsPregnant(yes);
+    if (!yes) {
+      setPregnancyDurationMonths("0");
+      setPregnancyDurationWeeks("0");
     }
   };
-
-  const handleWorkTypeSelect = (selectedWorkType) => {
-    setWorkType(selectedWorkType);
+  const handleBreastFeeding = (yes) => {
+    if (profileData.gender.toLowerCase() === "male")
+      return setIsBreastfeeding(false);
+    setIsBreastfeeding(yes);
   };
 
-  const handleActivityLevelSelect = (selectedActivityLevel) => {
-    setActivityLevel(selectedActivityLevel);
-  };
-
-  const handleRegularMedicationSelect = (selectedRegularMedication) => {
-    setRegularMedication(selectedRegularMedication);
-  };
-
-  const handleRecentHealthChanges = (selection) => {
-    setIsRecentHealthChange(selection == "Yes");
-    if (!isRecentHealthChange) {
-      setRecentHealthChange("");
-    }
-  };
-
-  const handleAllergies = (selection) => {
-    setIsAllergic(selection == "Yes");
-    if (!isAllergic) {
-      setAllergies("");
-    }
-  };
-
-  const handleNeuteredSpayedSelection = (selection) => {
-    setNeuteredSpayed(selection == "Yes");
-  };
-
-  const handleIsPregnant = (selection) => {
-    setIsPregnant(selection == "Yes");
-
-    if (profileData.gender.toLowerCase() === "male") {
-      setIsPregnant(false);
-    }
-
-    if (!isPregnant) {
-      setPregnancyDurationMonths(parseInt(0).toString());
-      setPregnancyDurationWeeks(parseInt(0).toString());
-    }
-  };
-
-  const handleBreastFeeding = (selection) => {
-    setIsBreastfeeding(selection == "Yes");
-
-    if (profileData.gender.toLowerCase() === "male") {
-      setIsBreastfeeding(false);
-    }
-  };
-
-  const onToastError = () => {
-    Toast.show({
-      type: "error",
-      text1: "Please fill all the information",
-    });
-  };
-
-  const goToNextStep = () => {
-    const step2Data = {
-      isWorkingDog: isWorkingDog,
-      workType: workType,
-      workDogOtherActivities: workDogOtherActivities,
-      activityType: activityType,
-      activityLevel: activityLevel,
-      dogWeight: dogWeight,
-      regularMedication: regularMedication,
-      recentHealthChange: recentHealthChange,
-      allergies: allergies,
-      neuteredSpayed: neuteredSpayed,
-      isPregnant: isPregnant,
-      pregnancyDurationMonths: pregnancyDurationMonths,
-      pregnancyDurationWeeks: pregnancyDurationWeeks,
-      isBreastfeeding: isBreastfeeding,
+  // ── validation + submit ──
+  const handleNext = () => {
+    const payload = {
+      isWorkingDog,
+      workType,
+      workDogOtherActivities,
+      activityType,
+      activityLevel,
+      dogWeight,
+      regularMedication,
+      recentHealthChange,
+      allergies,
+      neuteredSpayed,
+      isPregnant,
+      pregnancyDurationMonths,
+      pregnancyDurationWeeks,
+      isBreastfeeding,
     };
 
+    // quick sanity checks (could be tightened up later)
+    const missingWork = isWorkingDog && (!workType || !workDogOtherActivities);
+    const missingActivity = !isWorkingDog && !activityType;
+    const missingWeightOrLevel =
+      !activityLevel || !dogWeight || !regularMedication;
+    const missingHealth = isRecentHealthChange && !recentHealthChange;
+    const missingAllergy = isAllergic && !allergies;
+    const missingPregnancy =
+      isPregnant && (!pregnancyDurationMonths || !pregnancyDurationWeeks);
+
     if (
-      isWorkingDog &&
-      (!workType ||
-        !workDogOtherActivities ||
-        !activityLevel ||
-        !dogWeight ||
-        !regularMedication)
+      missingWork ||
+      missingActivity ||
+      missingWeightOrLevel ||
+      missingHealth ||
+      missingAllergy ||
+      missingPregnancy
     ) {
-      onToastError();
-    } else if (
-      !isWorkingDog &&
-      (!activityType || !activityLevel || !dogWeight || !regularMedication)
-    ) {
-      onToastError();
-    } else if (isRecentHealthChange && !recentHealthChange) {
-      onToastError();
-    } else if (isAllergic && !allergies) {
-      onToastError();
-    } else if (
-      isPregnant &&
-      (!pregnancyDurationMonths || !pregnancyDurationWeeks)
-    ) {
-      onToastError();
-    } else {
-      onSubmit(step2Data);
+      return errorToast();
     }
+
+    onSubmit(payload);
   };
 
+  // ── UI ──
   return (
-    <ScrollView style={styles.container} scrollEnabled={true}>
+    <ScrollView style={styles.container}>
       <View style={styles.contentContainer}>
+        {/* heading */}
         <View style={styles.titleContainer}>
           <Text style={styles.h1}>Health & Lifestyle</Text>
           <Text style={styles.h2}>
@@ -189,92 +165,83 @@ const DogProfileCreationStep2 = ({ onSubmit, name, profileData }) => {
           </Text>
         </View>
 
+        {/* working dog? */}
         <View style={styles.inputContainer}>
           <Text style={styles.h3}>Is {name} a working/sporting dog?</Text>
           <View style={styles.radioContainer}>
-            <TouchableOpacity
-              style={styles.radioSubContainer}
-              onPress={() => handleWorkSelection("Yes")}
-            >
-              <View
-                style={[
-                  styles.outerCircle,
-                  isWorkingDog && styles.selectedOuterCircle,
-                ]}
+            {[
+              { label: "Yes", value: true },
+              { label: "No", value: false },
+            ].map(({ label, value }) => (
+              <TouchableOpacity
+                key={label}
+                style={styles.radioSubContainer}
+                onPress={() => handleWorkSelection(value)}
               >
-                {isWorkingDog && <View style={styles.innerCircle} />}
-              </View>
-              <Text style={styles.radioText}>Yes</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.radioSubContainer}
-              onPress={() => handleWorkSelection("No")}
-            >
-              <View
-                style={[
-                  styles.outerCircle,
-                  !isWorkingDog && styles.selectedOuterCircle,
-                ]}
-              >
-                {!isWorkingDog && <View style={styles.innerCircle} />}
-              </View>
-              <Text style={styles.radioText}>No</Text>
-            </TouchableOpacity>
+                <View
+                  style={[
+                    styles.outerCircle,
+                    isWorkingDog === value && styles.selectedOuterCircle,
+                  ]}
+                >
+                  {isWorkingDog === value && (
+                    <View style={styles.innerCircle} />
+                  )}
+                </View>
+                <Text style={styles.radioText}>{label}</Text>
+              </TouchableOpacity>
+            ))}
           </View>
         </View>
 
-        {isWorkingDog && (
+        {/* work‑type / activities */}
+        {isWorkingDog ? (
           <>
             <View style={styles.inputContainer}>
               <Text style={styles.h3}>Type of working/sporting dog</Text>
               <Dropdown
                 data={workOptions}
-                onSelect={handleWorkTypeSelect}
-                selectedValue={profileData.workType}
+                onSelect={setWorkType}
+                selectedValue={workType}
                 placeholder="Select Work Type"
               />
             </View>
             <View style={styles.inputContainer}>
-              <Text style={styles.h3}>Other Activities</Text>
+              <Text style={styles.h3}>Other activities</Text>
               <InputWithIcon
                 iconName="tennisball-outline"
                 iconType="Ionicons"
-                placeholder="Eg. Walking"
-                onChangeText={(e) => {
-                  setWorkDogOtherActivities(e);
-                }}
+                placeholder="e.g. Walking"
+                onChangeText={setWorkDogOtherActivities}
                 value={workDogOtherActivities}
               />
             </View>
           </>
-        )}
-
-        {!isWorkingDog && (
+        ) : (
           <View style={styles.inputContainer}>
-            <Text style={styles.h3}>Activity Type</Text>
+            <Text style={styles.h3}>Activity type</Text>
             <InputWithIcon
               iconName="tennisball-outline"
               iconType="Ionicons"
-              placeholder="Eg. Walking"
-              onChangeText={(e) => {
-                setActivityType(e);
-              }}
+              placeholder="e.g. Walking"
+              onChangeText={setActivityType}
               value={activityType}
             />
           </View>
         )}
 
+        {/* activity level */}
         <View style={styles.inputContainer}>
-          <Text style={styles.h3}>Activity Level</Text>
+          <Text style={styles.h3}>Activity level</Text>
           <Dropdown
             data={activityLevelOptions}
-            onSelect={handleActivityLevelSelect}
-            selectedValue={profileData.activityLevel}
-            placeholder="Select the Intensity"
+            onSelect={setActivityLevel}
+            selectedValue={activityLevel}
+            placeholder="Select intensity"
           />
         </View>
 
+        {/* weight */}
         <View style={styles.inputContainer}>
           <Text style={styles.h3}>Weight</Text>
           <View style={styles.inputSubContainer}>
@@ -282,250 +249,192 @@ const DogProfileCreationStep2 = ({ onSubmit, name, profileData }) => {
               <InputWithIcon
                 iconName="scale-outline"
                 iconType="Ionicons"
-                placeholder="Enter weigth"
+                placeholder="Enter weight"
                 keyboardType="numeric"
-                onChangeText={(enteredWeight) => {
-                  const weigthInKg = isKg
-                    ? enteredWeight
-                    : enteredWeight * 0.45359237;
-                  setDogWeight(weigthInKg);
-                }}
+                onChangeText={(w) => setDogWeight(isKg ? w : w * 0.45359237)}
                 value={dogWeight}
               />
             </View>
             <View style={styles.inputButtonsWrapper}>
-              <TouchableOpacity
-                style={[
-                  styles.kg,
-                  { backgroundColor: isKg ? "#181C39" : "#181c3900" },
-                ]}
-                onPress={() => setIsKg(true)}
-              >
-                <Text
-                  style={[
-                    styles.kgText,
-                    { color: isKg ? "#ffffff" : "#181c39" },
-                  ]}
+              {[
+                { label: "Kg", val: true },
+                { label: "Lbs", val: false },
+              ].map(({ label, val }) => (
+                <TouchableOpacity
+                  key={label}
+                  style={[styles.unitBtn, isKg === val && styles.unitBtnActive]}
+                  onPress={() => setIsKg(val)}
                 >
-                  Kg
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.lbs,
-                  { backgroundColor: !isKg ? "#181C39" : "#181c3900" },
-                ]}
-                onPress={() => setIsKg(false)}
-              >
-                <Text
-                  style={[
-                    styles.lbsText,
-                    { color: !isKg ? "#ffffff" : "#181c39" },
-                  ]}
-                >
-                  Lbs
-                </Text>
-              </TouchableOpacity>
-              <Text style={styles.weightValueText}>{isKg ? "Kg" : "Lbs"}</Text>
+                  <Text
+                    style={[
+                      styles.unitText,
+                      isKg === val && styles.unitTextActive,
+                    ]}
+                  >
+                    {label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
             </View>
           </View>
         </View>
 
+        {/* medication */}
         <View style={styles.inputContainer}>
-          <Text style={styles.h3}>
-            Is {name} currently taking any regular medication?
-          </Text>
+          <Text style={styles.h3}>Regular medication?</Text>
           <Dropdown
             data={regularMedicationOptions}
-            onSelect={handleRegularMedicationSelect}
-            selectedValue={profileData.regularMedication}
-            placeholder="Select Regular Medication"
+            onSelect={setRegularMedication}
+            selectedValue={regularMedication}
+            placeholder="Select"
           />
         </View>
 
+        {/* major health change? */}
         <View style={styles.inputContainer}>
           <Text style={styles.h3}>
-            Are there any Major Health Changes that we should know about?
+            Any major health changes we should know about?
           </Text>
           <View style={styles.radioContainer}>
-            <TouchableOpacity
-              style={styles.radioSubContainer}
-              onPress={() => handleRecentHealthChanges("Yes")}
-            >
-              <View
-                style={[
-                  styles.outerCircle,
-                  isRecentHealthChange && styles.selectedOuterCircle,
-                ]}
+            {[
+              { label: "Yes", val: true },
+              { label: "No", val: false },
+            ].map(({ label, val }) => (
+              <TouchableOpacity
+                key={label}
+                style={styles.radioSubContainer}
+                onPress={() => handleRecentHealthChanges(val)}
               >
-                {isRecentHealthChange && <View style={styles.innerCircle} />}
-              </View>
-              <Text style={styles.radioText}>Yes</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.radioSubContainer}
-              onPress={() => handleRecentHealthChanges("No")}
-            >
-              <View
-                style={[
-                  styles.outerCircle,
-                  !isRecentHealthChange && styles.selectedOuterCircle,
-                ]}
-              >
-                {!isRecentHealthChange && <View style={styles.innerCircle} />}
-              </View>
-              <Text style={styles.radioText}>No</Text>
-            </TouchableOpacity>
+                <View
+                  style={[
+                    styles.outerCircle,
+                    isRecentHealthChange === val && styles.selectedOuterCircle,
+                  ]}
+                >
+                  {isRecentHealthChange === val && (
+                    <View style={styles.innerCircle} />
+                  )}
+                </View>
+                <Text style={styles.radioText}>{label}</Text>
+              </TouchableOpacity>
+            ))}
           </View>
           {isRecentHealthChange && (
             <InputWithIcon
               iconName="health-and-safety"
               iconType="MaterialIcons"
               placeholder="Please specify"
-              onChangeText={
-                isRecentHealthChange
-                  ? (e) => {
-                      setRecentHealthChange(e);
-                    }
-                  : "none"
-              }
+              onChangeText={setRecentHealthChange}
               value={recentHealthChange}
             />
           )}
         </View>
 
+        {/* allergies */}
         <View style={styles.inputContainer}>
           <Text style={styles.h3}>Is {name} allergic to something?</Text>
           <View style={styles.radioContainer}>
-            <TouchableOpacity
-              style={styles.radioSubContainer}
-              onPress={() => handleAllergies("Yes")}
-            >
-              <View
-                style={[
-                  styles.outerCircle,
-                  isAllergic && styles.selectedOuterCircle,
-                ]}
+            {[
+              { label: "Yes", val: true },
+              { label: "No", val: false },
+            ].map(({ label, val }) => (
+              <TouchableOpacity
+                key={label}
+                style={styles.radioSubContainer}
+                onPress={() => handleAllergies(val)}
               >
-                {isAllergic && <View style={styles.innerCircle} />}
-              </View>
-              <Text style={styles.radioText}>Yes</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.radioSubContainer}
-              onPress={() => handleAllergies("No")}
-            >
-              <View
-                style={[
-                  styles.outerCircle,
-                  !isAllergic && styles.selectedOuterCircle,
-                ]}
-              >
-                {!isAllergic && <View style={styles.innerCircle} />}
-              </View>
-              <Text style={styles.radioText}>No</Text>
-            </TouchableOpacity>
+                <View
+                  style={[
+                    styles.outerCircle,
+                    isAllergic === val && styles.selectedOuterCircle,
+                  ]}
+                >
+                  {isAllergic === val && <View style={styles.innerCircle} />}
+                </View>
+                <Text style={styles.radioText}>{label}</Text>
+              </TouchableOpacity>
+            ))}
           </View>
           {isAllergic && (
             <InputWithIcon
               iconName="peanut-off-outline"
               iconType="MaterialCommunityIcons"
               placeholder="Enter allergy"
-              onChangeText={
-                isAllergic
-                  ? (e) => {
-                      setAllergies(e);
-                    }
-                  : "No Allergies"
-              }
+              onChangeText={setAllergies}
               value={allergies}
             />
           )}
         </View>
 
+        {/* neutered/spayed */}
         <View style={styles.inputContainer}>
           <Text style={styles.h3}>
             Is {name}{" "}
             {profileData.gender.toLowerCase() === "female"
-              ? "Spayed"
-              : "Neutered"}
+              ? "spayed"
+              : "neutered"}
             ?
           </Text>
           <View style={styles.radioContainer}>
-            <TouchableOpacity
-              style={styles.radioSubContainer}
-              onPress={() => handleNeuteredSpayedSelection("Yes")}
-            >
-              <View
-                style={[
-                  styles.outerCircle,
-                  neuteredSpayed && styles.selectedOuterCircle,
-                ]}
+            {[
+              { label: "Yes", val: true },
+              { label: "No", val: false },
+            ].map(({ label, val }) => (
+              <TouchableOpacity
+                key={label}
+                style={styles.radioSubContainer}
+                onPress={() => setNeuteredSpayed(val)}
               >
-                {neuteredSpayed && <View style={styles.innerCircle} />}
-              </View>
-              <Text style={styles.radioText}>Yes</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.radioSubContainer}
-              onPress={() => handleNeuteredSpayedSelection("No")}
-            >
-              <View
-                style={[
-                  styles.outerCircle,
-                  !neuteredSpayed && styles.selectedOuterCircle,
-                ]}
-              >
-                {!neuteredSpayed && <View style={styles.innerCircle} />}
-              </View>
-              <Text style={styles.radioText}>No</Text>
-            </TouchableOpacity>
+                <View
+                  style={[
+                    styles.outerCircle,
+                    neuteredSpayed === val && styles.selectedOuterCircle,
+                  ]}
+                >
+                  {neuteredSpayed === val && (
+                    <View style={styles.innerCircle} />
+                  )}
+                </View>
+                <Text style={styles.radioText}>{label}</Text>
+              </TouchableOpacity>
+            ))}
           </View>
         </View>
 
+        {/* pregnancy + breastfeeding (females only) */}
         {profileData.gender.toLowerCase() === "female" && (
           <>
             <View style={styles.inputContainer}>
-              <Text style={styles.h3}>Is {name} Pregnant?</Text>
+              <Text style={styles.h3}>Is {name} pregnant?</Text>
               <View style={styles.radioContainer}>
-                <TouchableOpacity
-                  style={styles.radioSubContainer}
-                  onPress={() => handleIsPregnant("Yes")}
-                >
-                  <View
-                    style={[
-                      styles.outerCircle,
-                      isPregnant && styles.selectedOuterCircle,
-                    ]}
+                {[
+                  { label: "Yes", val: true },
+                  { label: "No", val: false },
+                ].map(({ label, val }) => (
+                  <TouchableOpacity
+                    key={label}
+                    style={styles.radioSubContainer}
+                    onPress={() => handleIsPregnant(val)}
                   >
-                    {isPregnant && <View style={styles.innerCircle} />}
-                  </View>
-                  <Text style={styles.radioText}>Yes</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.radioSubContainer}
-                  onPress={() => handleIsPregnant("No")}
-                >
-                  <View
-                    style={[
-                      styles.outerCircle,
-                      !isPregnant && styles.selectedOuterCircle,
-                    ]}
-                  >
-                    {!isPregnant && <View style={styles.innerCircle} />}
-                  </View>
-                  <Text style={styles.radioText}>No</Text>
-                </TouchableOpacity>
+                    <View
+                      style={[
+                        styles.outerCircle,
+                        isPregnant === val && styles.selectedOuterCircle,
+                      ]}
+                    >
+                      {isPregnant === val && (
+                        <View style={styles.innerCircle} />
+                      )}
+                    </View>
+                    <Text style={styles.radioText}>{label}</Text>
+                  </TouchableOpacity>
+                ))}
               </View>
             </View>
 
             {isPregnant && (
               <View style={styles.inputContainer}>
-                <Text style={styles.h3}>Duration of Pregnancy</Text>
+                <Text style={styles.h3}>Duration of pregnancy</Text>
                 <View style={styles.inputSubContainer}>
                   <Text style={styles.h4}>Months</Text>
                   <View style={styles.inputPregnancyDurationWrapper}>
@@ -534,9 +443,7 @@ const DogProfileCreationStep2 = ({ onSubmit, name, profileData }) => {
                       iconType="MaterialIcons"
                       placeholder="Months"
                       keyboardType="numeric"
-                      onChangeText={(enteredMonths) => {
-                        setPregnancyDurationMonths(enteredMonths);
-                      }}
+                      onChangeText={setPregnancyDurationMonths}
                       value={pregnancyDurationMonths}
                     />
                   </View>
@@ -547,9 +454,7 @@ const DogProfileCreationStep2 = ({ onSubmit, name, profileData }) => {
                       iconType="MaterialIcons"
                       placeholder="Weeks"
                       keyboardType="numeric"
-                      onChangeText={(enteredWeeks) => {
-                        setPregnancyDurationWeeks(enteredWeeks);
-                      }}
+                      onChangeText={setPregnancyDurationWeeks}
                       value={pregnancyDurationWeeks}
                     />
                   </View>
@@ -558,48 +463,38 @@ const DogProfileCreationStep2 = ({ onSubmit, name, profileData }) => {
             )}
 
             <View style={styles.inputContainer}>
-              <Text style={styles.h3}>Is {name} Breastfeeding?</Text>
+              <Text style={styles.h3}>Is {name} breastfeeding?</Text>
               <View style={styles.radioContainer}>
-                <TouchableOpacity
-                  style={styles.radioSubContainer}
-                  onPress={() => handleBreastFeeding("Yes")}
-                >
-                  <View
-                    style={[
-                      styles.outerCircle,
-                      isBreastfeeding && styles.selectedOuterCircle,
-                    ]}
+                {[
+                  { label: "Yes", val: true },
+                  { label: "No", val: false },
+                ].map(({ label, val }) => (
+                  <TouchableOpacity
+                    key={label}
+                    style={styles.radioSubContainer}
+                    onPress={() => handleBreastFeeding(val)}
                   >
-                    {isBreastfeeding && <View style={styles.innerCircle} />}
-                  </View>
-                  <Text style={styles.radioText}>Yes</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.radioSubContainer}
-                  onPress={() => handleBreastFeeding("No")}
-                >
-                  <View
-                    style={[
-                      styles.outerCircle,
-                      !isBreastfeeding && styles.selectedOuterCircle,
-                    ]}
-                  >
-                    {!isBreastfeeding && <View style={styles.innerCircle} />}
-                  </View>
-                  <Text style={styles.radioText}>No</Text>
-                </TouchableOpacity>
+                    <View
+                      style={[
+                        styles.outerCircle,
+                        isBreastfeeding === val && styles.selectedOuterCircle,
+                      ]}
+                    >
+                      {isBreastfeeding === val && (
+                        <View style={styles.innerCircle} />
+                      )}
+                    </View>
+                    <Text style={styles.radioText}>{label}</Text>
+                  </TouchableOpacity>
+                ))}
               </View>
             </View>
           </>
         )}
 
+        {/* next */}
         <View style={styles.buttonContainer}>
-          <ButtonLarge
-            buttonName="Next"
-            isThereArrow={true}
-            onPress={goToNextStep}
-          />
+          <ButtonLarge buttonName="Next" isThereArrow onPress={handleNext} />
         </View>
       </View>
     </ScrollView>
@@ -607,22 +502,9 @@ const DogProfileCreationStep2 = ({ onSubmit, name, profileData }) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    backgroundColor: "#E6ECFC",
-    width: "100%",
-    paddingVertical: 10,
-  },
-  contentContainer: {
-    flex: 1,
-    justifyContent: "flex-start",
-    alignItems: "flex-start",
-    width: "100%",
-    paddingBottom: 15,
-  },
-  titleContainer: {
-    marginBottom: 10,
-    paddingHorizontal: 15,
-  },
+  container: { backgroundColor: "#E6ECFC", width: "100%", paddingVertical: 10 },
+  contentContainer: { flex: 1, width: "100%", paddingBottom: 15 },
+  titleContainer: { marginBottom: 10, paddingHorizontal: 15 },
   inputContainer: {
     backgroundColor: "#D2DAF0",
     marginBottom: 10,
@@ -630,32 +512,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     paddingVertical: 5,
   },
-  inputSubContainer: {
-    flexDirection: "row",
-    justifyContent: "flex-start",
-    alignItems: "center",
-  },
-  inputWrapper: {
-    width: "50%",
-  },
-  inputPregnancyDurationWrapper: {
-    flex: 1,
-    marginHorizontal: 5,
-  },
+  inputSubContainer: { flexDirection: "row", alignItems: "center" },
+  inputWrapper: { width: "50%" },
+  inputPregnancyDurationWrapper: { flex: 1, marginHorizontal: 5 },
   inputButtonsWrapper: {
     width: "50%",
     flexDirection: "row",
     justifyContent: "flex-end",
     alignItems: "center",
   },
-  buttonContainer: {
-    width: "100%",
-    paddingHorizontal: 20,
-  },
+  unitBtn: { padding: 10, borderWidth: 1, borderColor: "#181C39" },
+  unitBtnActive: { backgroundColor: "#181C39" },
+  unitText: { fontFamily: "MerriweatherSans-Bold", color: "#181C39" },
+  unitTextActive: { color: "#FFFFFF" },
+  buttonContainer: { width: "100%", paddingHorizontal: 20 },
   radioContainer: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "flex-start",
     marginTop: 10,
     marginBottom: 5,
   },
@@ -674,45 +547,14 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginRight: 8,
   },
-  selectedOuterCircle: {
-    borderColor: "#181C39",
-  },
+  selectedOuterCircle: { borderColor: "#181C39" },
   innerCircle: {
     height: 12,
     width: 12,
     borderRadius: 6,
     backgroundColor: "#181C39",
   },
-  kg: {
-    padding: 10,
-    justifyContent: "center",
-    alignItems: "center",
-    borderTopLeftRadius: 5,
-    borderBottomLeftRadius: 5,
-    borderColor: "#181c39",
-    borderWidth: 1,
-  },
-  kgText: {
-    fontFamily: "MerriweatherSans-Bold",
-  },
-  lbs: {
-    padding: 10,
-    justifyContent: "center",
-    alignItems: "center",
-    borderTopRightRadius: 5,
-    borderBottomRightRadius: 5,
-    borderWidth: 1,
-    borderColor: "#181c39",
-  },
-  lbsText: {
-    fontFamily: "MerriweatherSans-Bold",
-  },
-  weightValueText: {
-    position: "absolute",
-    left: 5,
-    color: "#7D7D7D",
-    fontFamily: "MerriweatherSans-Bold",
-  },
+  // text
   h1: {
     fontFamily: "MerriweatherSans-ExtraBold",
     fontSize: 20,
@@ -730,10 +572,8 @@ const styles = StyleSheet.create({
     color: "#273176",
     marginBottom: 5,
   },
-  radioText: {
-    fontFamily: "MerriweatherSans-Bold",
-    fontSize: 18,
-  },
+  h4: { fontFamily: "MerriweatherSans-Regular", fontSize: 15, color: "#000" },
+  radioText: { fontFamily: "MerriweatherSans-Bold", fontSize: 18 },
 });
 
-export default DogProfileCreationStep2;
+export default React.memo(DogProfileCreationStep2);
