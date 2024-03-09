@@ -1,3 +1,11 @@
+/*
+  Step 1 – Basic Details
+  ----------------------
+  • Name, breed, date of birth, gender.
+  • Breed‑Recognition shortcut if the user isn’t sure.
+  • Local validation – we only proceed when everything is filled in.
+*/
+
 import React, { useState, useEffect } from "react";
 import { useRoute } from "@react-navigation/native";
 import {
@@ -11,120 +19,94 @@ import {
   TextInput,
   Platform,
 } from "react-native";
-import InputWithImage from "../inputFields/InputWithImage";
-import ButtonLarge from "../buttons/ButtonLarge";
-import FontAwesome from "react-native-vector-icons/FontAwesome";
-import { images } from "../../constants/index";
 import DateTimePicker from "@react-native-community/datetimepicker";
+import FontAwesome from "react-native-vector-icons/FontAwesome";
 import Toast from "react-native-toast-message";
 
+import InputWithImage from "../inputFields/InputWithImage";
+import ButtonLarge from "../buttons/ButtonLarge";
+import { images } from "../../constants";
+
 const DogProfileCreationStep1 = ({ onSubmit, profileData, navigation }) => {
+  // ────────────────────── state
   const [dogName, setDogName] = useState(profileData.dogName);
   const [breed, setBreed] = useState(profileData.breed);
   const [selectedGender, setSelectedGender] = useState(profileData.gender);
   const [showPicker, setShowPicker] = useState(false);
   const [date, setDate] = useState(new Date());
   const [dateOfBirth, setDateOfBirth] = useState(profileData.dateOfBirth);
+
   const route = useRoute();
 
+  // If we came back from the Breed‑Recognition screen, pre‑fill the breed
   useEffect(() => {
-    if (route.params?.breed) {
-      setBreed(route.params.breed);
-    }
+    if (route.params?.breed) setBreed(route.params.breed);
   }, [route.params]);
 
-  const toggleDatepicker = () => {
-    setShowPicker(!showPicker);
-  };
+  // ────────────────────── helpers
+  const genders = ["Male", "Female"];
 
-  const updateBreed = (breedName) => {
-    setBreed(breedName);
-  };
+  const toggleDatepicker = () => setShowPicker((v) => !v);
 
-  const onChange = ({ type }, selectedDate) => {
-    // CODE FOR IOS NOT DONE YET
-    if (type == "set") {
-      const currentDate = selectedDate;
-      setDate(currentDate);
-
+  const onDateChange = ({ type }, selectedDate) => {
+    // TODO: fine‑tune for iOS later
+    if (type === "set") {
+      const d = selectedDate;
+      setDate(d);
       if (Platform.OS === "android") {
         toggleDatepicker();
-        setDateOfBirth(currentDate.toDateString());
+        setDateOfBirth(d.toDateString());
       }
     } else {
       toggleDatepicker();
     }
   };
 
-  const genders = ["Male", "Female"];
+  const showError = () =>
+    Toast.show({ type: "error", text1: "Please fill all the information" });
 
-  const selectGender = (gender) => {
-    setSelectedGender(gender);
+  const handleNext = () => {
+    const filled = dogName && breed && dateOfBirth && selectedGender;
+    if (!filled) return showError();
+    onSubmit({ dogName, breed, dateOfBirth, gender: selectedGender });
   };
 
-  const onToastError = () => {
-    Toast.show({
-      type: "error",
-      text1: "Please fill all the information",
-    });
-  };
-
-  const handleSubmit = () => {
-    const step1Data = {
-      dogName: dogName,
-      breed: breed,
-      dateOfBirth: dateOfBirth,
-      gender: selectedGender,
-    };
-
-    if (
-      dogName.length > 0 &&
-      breed.length > 0 &&
-      dateOfBirth.length > 0 &&
-      selectedGender.length > 0
-    ) {
-      onSubmit(step1Data);
-    } else {
-      onToastError();
-    }
-  };
-
+  // ────────────────────── render
   return (
-    <ScrollView style={styles.container} scrollEnabled={true}>
+    <ScrollView style={styles.container}>
       <View style={styles.contentContainer}>
+        {/* Heading */}
         <View style={styles.titleContainer}>
           <Text style={styles.h1}>Basic Details</Text>
           <Text style={styles.h2}>
-            Start by sharing the basic about your furry friend.
+            Start by sharing the basics about your furry friend.
           </Text>
         </View>
 
+        {/* Dog name */}
         <View style={styles.inputContainer}>
           <Text style={styles.h3}>Dog's Name</Text>
           <InputWithImage
             placeholder="Enter your dog's name"
             imageName={images.dog_id}
-            onChangeText={(e) => setDogName(e)}
+            onChangeText={setDogName}
             value={dogName}
           />
         </View>
 
+        {/* Breed */}
         <View style={styles.inputContainer}>
           <Text style={styles.h3}>Breed</Text>
           <InputWithImage
-            placeholder="Enter your dog's Breed"
+            placeholder="Enter your dog's breed"
             imageName={images.dog}
             value={breed}
-            onChangeText={(e) => {
-              setBreed(e);
-            }}
+            onChangeText={setBreed}
           />
           <View style={styles.underTextContainer}>
             <Text style={styles.h4}>Not sure? Use the </Text>
             <TouchableOpacity
-              onPress={() => {
-                navigation.navigate("BreedRecognition");
-              }}
+              onPress={() => navigation.navigate("BreedRecognition")}
             >
               <Text style={[styles.h4, styles.h4Special]}>
                 Breed Recognition
@@ -133,6 +115,7 @@ const DogProfileCreationStep1 = ({ onSubmit, profileData, navigation }) => {
           </View>
         </View>
 
+        {/* Date of birth */}
         <View style={styles.inputContainer}>
           <Text style={styles.h3}>When was your dog born?</Text>
           <Pressable style={styles.dateContainer} onPress={toggleDatepicker}>
@@ -147,7 +130,6 @@ const DogProfileCreationStep1 = ({ onSubmit, profileData, navigation }) => {
               placeholder="Select Date"
               placeholderTextColor="#7D7D7D"
               editable={false}
-              onChangeText={setDateOfBirth}
               value={dateOfBirth}
             />
             {showPicker && (
@@ -155,35 +137,34 @@ const DogProfileCreationStep1 = ({ onSubmit, profileData, navigation }) => {
                 mode="date"
                 display="spinner"
                 value={date}
-                onChange={onChange}
+                onChange={onDateChange}
                 maximumDate={new Date()}
               />
             )}
           </Pressable>
         </View>
 
+        {/* Gender */}
         <View style={styles.inputContainer}>
-          <Text style={styles.h3}>What is your dog gender?</Text>
+          <Text style={styles.h3}>What is your dog's gender?</Text>
           <View style={styles.genderContainer}>
-            {genders.map((gender, index) => (
+            {genders.map((g, i) => (
               <TouchableOpacity
-                key={index}
+                key={g}
                 style={styles.radioContainer}
-                onPress={() => selectGender(gender)}
+                onPress={() => setSelectedGender(g)}
               >
                 <View
                   style={[
                     styles.outerCircle,
-                    selectedGender === gender && styles.selectedOuterCircle,
+                    selectedGender === g && styles.selectedOuterCircle,
                   ]}
                 >
-                  {selectedGender === gender && (
-                    <View style={styles.innerCircle} />
-                  )}
+                  {selectedGender === g && <View style={styles.innerCircle} />}
                 </View>
-                <Text style={styles.radioText}>{gender}</Text>
+                <Text style={styles.radioText}>{g}</Text>
                 <Image
-                  source={index === 0 ? images.male : images.female}
+                  source={i === 0 ? images.male : images.female}
                   style={styles.genderImage}
                 />
               </TouchableOpacity>
@@ -191,12 +172,9 @@ const DogProfileCreationStep1 = ({ onSubmit, profileData, navigation }) => {
           </View>
         </View>
 
+        {/* Next button */}
         <View style={styles.buttonContainer}>
-          <ButtonLarge
-            buttonName="Next"
-            isThereArrow={true}
-            onPress={handleSubmit}
-          />
+          <ButtonLarge buttonName="Next" isThereArrow onPress={handleNext} />
         </View>
       </View>
     </ScrollView>
@@ -204,22 +182,9 @@ const DogProfileCreationStep1 = ({ onSubmit, profileData, navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    backgroundColor: "#E6ECFC",
-    width: "100%",
-    paddingVertical: 10,
-    // paddingHorizontal: 15,
-  },
-  contentContainer: {
-    flex: 1,
-    justifyContent: "flex-start",
-    alignItems: "flex-start",
-    width: "100%",
-  },
-  titleContainer: {
-    marginBottom: 10,
-    paddingHorizontal: 15,
-  },
+  container: { backgroundColor: "#E6ECFC", width: "100%", paddingVertical: 10 },
+  contentContainer: { flex: 1, alignItems: "flex-start", width: "100%" },
+  titleContainer: { marginBottom: 10, paddingHorizontal: 15 },
   inputContainer: {
     backgroundColor: "#D2DAF0",
     marginBottom: 10,
@@ -228,15 +193,15 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
   },
   underTextContainer: {
-    width: "100%",
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
+    width: "100%",
   },
   genderContainer: {
     flexDirection: "row",
-    alignItems: "center",
     justifyContent: "space-around",
+    alignItems: "center",
     marginTop: 10,
     marginBottom: 5,
   },
@@ -248,22 +213,18 @@ const styles = StyleSheet.create({
   dateContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "white",
+    backgroundColor: "#FFFFFF",
     width: "100%",
     height: 32,
-    borderRadius: 0,
-    shadowColor: "#000000",
+    elevation: 8,
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
     shadowRadius: 4,
-    elevation: 8,
     paddingHorizontal: 10,
     marginVertical: 10,
   },
-  buttonContainer: {
-    width: "100%",
-    paddingHorizontal: 20,
-  },
+  buttonContainer: { width: "100%", paddingHorizontal: 20 },
   outerCircle: {
     height: 24,
     width: 24,
@@ -274,20 +235,15 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginRight: 8,
   },
-  selectedOuterCircle: {
-    borderColor: "#181C39",
-  },
+  selectedOuterCircle: { borderColor: "#181C39" },
   innerCircle: {
     height: 12,
     width: 12,
     borderRadius: 6,
     backgroundColor: "#181C39",
   },
-  genderImage: {
-    width: 24,
-    height: 24,
-    marginLeft: 5,
-  },
+  genderImage: { width: 24, height: 24, marginLeft: 5 },
+  // Typography
   h1: {
     fontFamily: "MerriweatherSans-ExtraBold",
     fontSize: 20,
@@ -305,26 +261,19 @@ const styles = StyleSheet.create({
     color: "#273176",
     marginBottom: 5,
   },
-  h4: {
-    fontFamily: "MerriweatherSans-Regular",
-    fontSize: 15,
-    color: "#000000",
-  },
+  h4: { fontFamily: "MerriweatherSans-Regular", fontSize: 15, color: "#000" },
   h4Special: {
     fontFamily: "MerriweatherSans-ExtraBold",
     color: "#F14336",
     textDecorationLine: "underline",
   },
-  radioText: {
-    fontFamily: "MerriweatherSans-Bold",
-    fontSize: 18,
-  },
+  radioText: { fontFamily: "MerriweatherSans-Bold", fontSize: 18 },
   textInputStyle: {
     flex: 1,
     paddingHorizontal: 10,
     fontFamily: "MerriweatherSans-Regular",
-    color: "#000000",
+    color: "#000",
   },
 });
 
-export default DogProfileCreationStep1;
+export default React.memo(DogProfileCreationStep1);
