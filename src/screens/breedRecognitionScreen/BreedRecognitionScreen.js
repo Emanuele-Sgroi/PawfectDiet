@@ -1,5 +1,13 @@
-import React, { useState, useEffect } from "react";
-import { useRoute } from "@react-navigation/native";
+/*
+  BreedRecognitionScreen
+  ----------------------
+  Upload a dog photo, run it through our tiny CNN (TensorFlow Lite converted)
+  and show the top‑3 breed guesses.  User can accept, retry, or bail out.
+
+
+*/
+
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -9,429 +17,233 @@ import {
   Dimensions,
   Pressable,
 } from "react-native";
-import {
-  TitleOnlyNavbar,
-  BreedRecognitionExamplesModal,
-  PhotoUploadComponent,
-  ButtonLarge,
-  BreedAnalysisLoading,
-} from "../../components/index";
 import Toast from "react-native-toast-message";
-import { storage, db } from "../../../firebaseConfig";
-import { ref, deleteObject } from "firebase/storage";
-import { doc, getDoc, deleteDoc } from "firebase/firestore";
 import * as SecureStore from "expo-secure-store";
 import * as tf from "@tensorflow/tfjs";
 import "@tensorflow/tfjs-react-native";
 import {
   bundleResourceIO,
   decodeJpeg,
-  fetch,
+  fetch as tfFetch,
 } from "@tensorflow/tfjs-react-native";
+import { ref, deleteObject } from "firebase/storage";
+import { doc, getDoc, deleteDoc } from "firebase/firestore";
 
-const screenHeight = Dimensions.get("window").height;
+import { storage, db } from "../../../firebaseConfig";
+import {
+  TitleOnlyNavbar,
+  BreedRecognitionExamplesModal,
+  PhotoUploadComponent,
+  ButtonLarge,
+  BreedAnalysisLoading,
+} from "../../components";
+
+const { height: screenHeight } = Dimensions.get("window");
+const breedNames = [
+  "Pomeranian",
+  "Golden Retriever",
+  "Beagle",
+  "Chihuahua",
+  "Maltese",
+  "Pekinese",
+  "Basset",
+  "Jack Russell Terrier",
+  "German Shepherd",
+  "Labrador",
+  "Doberman",
+];
+
+const DEFAULT_MODEL_JSON = require("../../beedRecognitionModel/model.json");
+const DEFAULT_MODEL_WEIGHTS = require("../../beedRecognitionModel/weights.bin");
 
 const BreedRecognitionScreen = ({ navigation }) => {
+  // ─────────────────────── state
   const [showExamples, setShowExamples] = useState(false);
   const [uploadedPhoto, setUploadedPhoto] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [predictionView, setPredictionView] = useState(false);
-  //const [model, setModel] = useState(null);
-  const [breedsPredicted, setBreedPredicted] = useState([]);
-  const [highestBreedPredicted, setHighestBreedPredicted] = useState("");
-
-  const breedNames = [
-    "Pomeranian",
-    "Golden Retriever",
-    "Beagle",
-    "Chihuahua",
-    "Maltese",
-    "Pekinese",
-    "Basset",
-    "Jack Russell Terrier",
-    "German Shepherd",
-    "Labrador",
-    "Doberman",
-  ];
-
-  /////////////////////////////////////////////
+  const [predView, setPredView] = useState(false);
+  const [predictions, setPredictions] = useState([]);
+  const [topBreed, setTopBreed] = useState("");
 
   const [model, setModel] = useState(null);
 
-  useEffect(() => {
-    const loadModel = async () => {
-      await tf.ready();
-      const modelJson = require("../../beedRecognitionModel/model.json");
-      const modelWeights = require("../../beedRecognitionModel/weights.bin");
-      const model = await tf.loadLayersModel(
-        bundleResourceIO(modelJson, modelWeights)
-      );
-      setModel(model);
-    };
+  // ─────────────────────── helpers
+  const toast = (msg, type = "error") => Toast.show({ type, text1: msg });
 
-    loadModel();
+  // Single model‑loader effect
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      await tf.ready();
+      const loaded = await tf.loadLayersModel(
+        bundleResourceIO(DEFAULT_MODEL_JSON, DEFAULT_MODEL_WEIGHTS)
+      );
+      if (mounted) setModel(loaded);
+    })();
+    return () => (mounted = false);
   }, []);
 
-  async function predictImage(imageUrl) {
-    if (!model) return;
-
-    const response = await fetch(imageUrl, {}, { isBinary: true });
-    const imageData = await response.arrayBuffer();
-    const imageTensor = decodeJpeg(new Uint8Array(imageData));
-    const processedTensor = imageTensor
+  const preprocess = (tensor) =>
+    tensor
       .resizeBilinear([224, 224])
       .expandDims(0)
       .toFloat()
       .div(tf.scalar(255));
-    const prediction = await model.predict(processedTensor).data();
-    // Processing and setting the prediction result here...
-  }
 
-  ////////////////////////////
-
-  useEffect(() => {
-    let isMounted = true;
-    const loadModel = async () => {
-      await tf.ready();
-      const modelJson = require("../../beedRecognitionModel/model.json");
-      const modelWeights = require("../../beedRecognitionModel/weights.bin");
-      const model = await tf.loadLayersModel(
-        bundleResourceIO(modelJson, modelWeights)
-      );
-      if (isMounted) {
-        setModel(model);
-        //console.log("Model loaded successfully");
+  const runPrediction = useCallback(
+    async (uri) => {
+      if (!model) return;
+      try {
+        const res = await tfFetch(uri, {}, { isBinary: true });
+        const imgBuffer = await res.arrayBuffer();
+        const imgTensor = decodeJpeg(new Uint8Array(imgBuffer));
+        const pred = await model.predict(preprocess(imgTensor)).data();
+        handlePredResult(pred);
+      } catch (e) {
+        console.error(e);
+        toast("Prediction failed – try again");
+        setLoading(false);
       }
-    };
+    },
+    [model]
+  );
 
-    loadModel();
-
-    return () => {
-      isMounted = false; // cleanup on unmount
-    };
-  }, []);
-
-  function processPrediction(prediction) {
-    const predictedIndex = prediction.indexOf(Math.max(...prediction));
-    return breedNames[predictedIndex];
-  }
-
-  function processTopPredictions(predictions, topK = 3) {
-    const predictionArray = Array.isArray(predictions)
-      ? predictions
-      : Array.from(predictions);
-
-    const breedProbabilities = predictionArray.map((probability, index) => ({
-      breed: breedNames[index],
-      probability,
-    }));
-
-    const sortedByProbability = breedProbabilities.sort(
-      (a, b) => b.probability - a.probability
-    );
-
-    const topPredictions = sortedByProbability.slice(0, topK);
-
-    const formattedPredictions = topPredictions.map(
-      (prediction) =>
-        `${prediction.breed}: ${(prediction.probability * 100).toFixed(2)}%`
-    );
-
-    return formattedPredictions;
-  }
-
-  async function predictImage(imageUrl) {
-    if (!model) {
-      // console.log("Model is not loaded.");
-      return;
-    }
-
-    try {
-      const response = await fetch(imageUrl, {}, { isBinary: true });
-      const imageData = await response.arrayBuffer();
-      const imageTensor = decodeJpeg(new Uint8Array(imageData));
-
-      const processedTensor = preprocessImage(imageTensor);
-
-      const prediction = await model.predict(processedTensor).data();
-
-      const predictedBreed = processPrediction(prediction);
-      const topPredictions = processTopPredictions(prediction);
-      setBreedPredicted(topPredictions);
-      setHighestBreedPredicted(predictedBreed);
-      setPredictionView(true);
-    } catch (error) {
-      console.error("Prediction error:", error);
-      clearInterval(intervalId);
-      onToastError("Failed. Please try again");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  function preprocessImage(imageTensor) {
-    return imageTensor
-      .resizeBilinear([224, 224])
-      .expandDims(0)
-      .toFloat()
-      .div(tf.scalar(255));
-  }
-
-  const handlePhotosChange = (photo) => {
-    // console.log("Updated photos in parent component:", photo);
-    setUploadedPhoto(photo);
+  const handlePredResult = (predArray) => {
+    const arr = Array.from(predArray);
+    // top‑3 formatted list
+    const top3 = arr
+      .map((p, i) => ({ breed: breedNames[i], p }))
+      .sort((a, b) => b.p - a.p)
+      .slice(0, 3)
+      .map(({ breed, p }) => `${breed}: ${(p * 100).toFixed(2)}%`);
+    setPredictions(top3);
+    setTopBreed(top3[0].split(":")[0]);
+    setLoading(false);
+    setPredView(true);
   };
 
-  const handleAnalyzeBreedButton = () => {
-    if (uploadedPhoto === null) {
-      onToastError("Please upload a photo");
-    } else {
-      setLoading(true);
-      predictImage(uploadedPhoto.uri);
-    }
+  const handleAnalyze = () => {
+    if (!uploadedPhoto) return toast("Please upload a photo");
+    setLoading(true);
+    runPrediction(uploadedPhoto.uri);
+  };
+
+  // ─────────────────────── Firestore/Storage cleanup helpers (shared)
+  const cleanupTempData = async () => {
+    const uid = await SecureStore.getItemAsync("userId");
+    const tempRef = doc(db, "users", uid, "breedRecognitionTemp", "tempData");
+    try {
+      (await getDoc(tempRef)).exists() && (await deleteDoc(tempRef));
+    } catch {}
+    if (uploadedPhoto)
+      try {
+        await deleteObject(ref(storage, uploadedPhoto.storagePath));
+      } catch {}
+    setUploadedPhoto(null);
   };
 
   const handleCancel = async () => {
-    const userId = await SecureStore.getItemAsync("userId");
-
-    const tempDocRef = doc(
-      db,
-      "users",
-      userId,
-      "breedRecognitionTemp",
-      "tempData"
-    );
-    try {
-      const docSnap = await getDoc(tempDocRef);
-      if (docSnap.exists()) {
-        await deleteDoc(tempDocRef);
-        //console.log("Deleted document in Firestore");
-      } else {
-        // console.log("No document to delete in Firestore");
-      }
-    } catch (error) {
-      console.error("Failed to delete document in Firestore", error);
-    }
-
-    if (uploadedPhoto) {
-      const photoRef = ref(storage, uploadedPhoto.storagePath);
-      try {
-        await deleteObject(photoRef);
-        //console.log(`Deleted photo: ${uploadedPhoto.storagePath}`);
-      } catch (error) {
-        console.error(
-          `Failed to delete photo: ${uploadedPhoto.storagePath}`,
-          error
-        );
-      }
-    }
-    setUploadedPhoto(null);
+    await cleanupTempData();
     navigation.navigate("DogProfileCreation");
   };
 
-  const onToastError = (message) => {
-    Toast.show({
-      type: "error",
-      text1: message,
-    });
-  };
-
-  const onToastSuccess = (message) => {
-    Toast.show({
-      type: "success",
-      text1: message,
-    });
-  };
-
   const handleAgree = async () => {
-    const userId = await SecureStore.getItemAsync("userId");
-
-    const tempDocRef = doc(
-      db,
-      "users",
-      userId,
-      "breedRecognitionTemp",
-      "tempData"
-    );
-    try {
-      const docSnap = await getDoc(tempDocRef);
-      if (docSnap.exists()) {
-        await deleteDoc(tempDocRef);
-        // console.log("Deleted document in Firestore");
-      } else {
-        //  console.log("No document to delete in Firestore");
-      }
-    } catch (error) {
-      console.error("Failed to delete document in Firestore", error);
-    }
-
-    if (uploadedPhoto) {
-      const photoRef = ref(storage, uploadedPhoto.storagePath);
-      try {
-        await deleteObject(photoRef); // Delete the photo from Firebase Storage
-        //console.log(`Deleted photo: ${uploadedPhoto.storagePath}`);
-      } catch (error) {
-        console.error(
-          `Failed to delete photo: ${uploadedPhoto.storagePath}`,
-          error
-        );
-      }
-    }
-
-    setUploadedPhoto(null);
-
-    navigation.navigate("DogProfileCreation", {
-      breed: highestBreedPredicted,
-    });
-
-    onToastSuccess("Breed updated");
+    await cleanupTempData();
+    navigation.navigate("DogProfileCreation", { breed: topBreed });
+    toast("Breed updated", "success");
   };
 
   const handleTryAgain = async () => {
-    setPredictionView(false);
-    const userId = await SecureStore.getItemAsync("userId");
-
-    const tempDocRef = doc(
-      db,
-      "users",
-      userId,
-      "breedRecognitionTemp",
-      "tempData"
-    );
-    try {
-      const docSnap = await getDoc(tempDocRef);
-      if (docSnap.exists()) {
-        await deleteDoc(tempDocRef); // Delete the document from Firestore
-        //console.log("Deleted document in Firestore");
-      } else {
-        // console.log("No document to delete in Firestore");
-      }
-    } catch (error) {
-      console.error("Failed to delete document in Firestore", error);
-    }
-
-    if (uploadedPhoto) {
-      const photoRef = ref(storage, uploadedPhoto.storagePath);
-      try {
-        await deleteObject(photoRef); // Delete the photo from Firebase Storage
-        // console.log(`Deleted photo: ${uploadedPhoto.storagePath}`);
-      } catch (error) {
-        console.error(
-          `Failed to delete photo: ${uploadedPhoto.storagePath}`,
-          error
-        );
-      }
-    }
-
-    setUploadedPhoto(null);
-    onToastError("Please use a different photo");
-    setHighestBreedPredicted("");
-    setBreedPredicted([]);
+    await cleanupTempData();
+    setPredView(false);
+    setTopBreed("");
+    setPredictions([]);
+    toast("Please use a different photo");
   };
 
+  // ─────────────────────── render helpers
+  const routeExamples = () => (
+    <BreedRecognitionExamplesModal
+      onClosePress={() => setShowExamples(false)}
+    />
+  );
+
+  // ─────────────────────── UI
   return (
     <>
       <TitleOnlyNavbar onBackPress={handleCancel} title="Breed Recognition" />
-      <ScrollView style={styles.container} scrollEnabled={true}>
-        {!predictionView ? (
-          <>
-            <View style={styles.contentContainer}>
-              <View style={styles.textContainer}>
-                <Text style={styles.h1}>Help us identify your dog's breed</Text>
-                <Text style={styles.p}>
-                  Use the button below to upload a photo of your dog. Make sure
-                  to do not choose images that are too dark and make sure the
-                  full body of your dog is visible.{" "}
-                </Text>
-                <TouchableOpacity onPress={() => setShowExamples(true)}>
-                  <Text style={styles.exampleText}>View Examples</Text>
-                </TouchableOpacity>
-              </View>
-              <PhotoUploadComponent onPhotosChange={handlePhotosChange} />
-              <View style={{ width: "100%", paddingHorizontal: 15 }}>
-                <ButtonLarge
-                  isThereArrow={false}
-                  buttonName="Analyze Breed"
-                  onPress={() => handleAnalyzeBreedButton()}
-                />
-              </View>
-              <Pressable style={{ marginTop: 10 }} onPress={handleCancel}>
-                <Text style={styles.cancel}>Cancel</Text>
-              </Pressable>
-              {showExamples && (
-                <BreedRecognitionExamplesModal
-                  onClosePress={() => setShowExamples(false)}
-                />
-              )}
-            </View>
-          </>
-        ) : (
-          <>
-            <View style={styles.contentContainer}>
-              <Text style={[styles.h1, { marginTop: 20 }]}>
-                Breed Identification Result{" "}
+      <ScrollView style={styles.container}>
+        {!predView ? (
+          <View style={styles.contentContainer}>
+            {/* intro */}
+            <View style={styles.textContainer}>
+              <Text style={styles.h1}>Help us identify your dog's breed</Text>
+              <Text style={styles.p}>
+                Upload a clear photo – full body, good lighting. We'll guess the
+                breed.
               </Text>
-              <View style={styles.resultContainer}>
-                <View style={styles.listBreedsContainer}>
-                  {breedsPredicted.map((breed, index) => {
-                    const match = breed.match(/(\d+(\.\d+)?%)/);
-                    const matchText = breed.match(/^(.*?):/);
-                    const percentage = match[0];
-                    const breedName = matchText[1].trim();
+              <TouchableOpacity onPress={() => setShowExamples(true)}>
+                <Text style={styles.exampleText}>View Examples</Text>
+              </TouchableOpacity>
+            </View>
 
-                    return (
-                      <View style={styles.listBreeds} key={index}>
-                        <View style={styles.breedTextWrapper}>
-                          <Text style={styles.breedText}>{breedName}</Text>
-                          <Text style={styles.breedText}>{percentage}</Text>
-                        </View>
-                        {index < 2 && <View style={styles.line}></View>}
-                      </View>
-                    );
-                  })}
-                </View>
-                <View style={styles.textInfoContainer}>
-                  <Text style={styles.textInfo}>
-                    It appears your furry friend shares strong traits of a{" "}
-                    <Text style={styles.textInfo2}>
-                      {highestBreedPredicted}
-                    </Text>
-                    . Feeding your dog with a diet tailored for a{" "}
-                    <Text style={styles.textInfo2}>
-                      {highestBreedPredicted}
-                    </Text>{" "}
-                    should be save. However, we reccomend to ask your vet for
-                    more accurate information about your dog's breed.
-                  </Text>
-                </View>
-              </View>
-              <Text
-                style={[
-                  styles.p,
-                  { marginVertical: 20, maxWidth: "90%", textAlign: "center" },
-                ]}
-              >
-                If you are unhappy with the result, please try again with a
-                different photo.
-              </Text>
-              <View style={{ width: "100%", paddingHorizontal: 15 }}>
-                <ButtonLarge
-                  isThereArrow={false}
-                  buttonName="I agree"
-                  onPress={handleAgree}
-                />
-              </View>
-              <Pressable
-                style={styles.tryAgainWrapper}
-                onPress={handleTryAgain}
-              >
-                <Text style={styles.tryAgainText}>Try Again</Text>
-              </Pressable>
-              <Pressable style={{ marginTop: 40 }} onPress={handleCancel}>
-                <Text style={styles.cancel}>Cancel</Text>
-              </Pressable>
+            {/* uploader */}
+            <PhotoUploadComponent onPhotosChange={setUploadedPhoto} />
+            <View style={{ width: "100%", paddingHorizontal: 15 }}>
+              <ButtonLarge buttonName="Analyze Breed" onPress={handleAnalyze} />
             </View>
-          </>
+            <Pressable style={{ marginTop: 10 }} onPress={handleCancel}>
+              <Text style={styles.cancel}>Cancel</Text>
+            </Pressable>
+            {showExamples && routeExamples()}
+          </View>
+        ) : (
+          <View style={styles.contentContainer}>
+            <Text style={[styles.h1, { marginTop: 20 }]}>
+              Breed Identification Result
+            </Text>
+            {/* list of top breeds */}
+            <View style={styles.resultContainer}>
+              <View style={styles.listBreedsContainer}>
+                {predictions.map((line, i) => {
+                  const [breed, pct] = line.split(":");
+                  return (
+                    <View key={i} style={styles.listBreeds}>
+                      <View style={styles.breedTextWrapper}>
+                        <Text style={styles.breedText}>{breed.trim()}</Text>
+                        <Text style={styles.breedText}>{pct.trim()}</Text>
+                      </View>
+                      {i < 2 && <View style={styles.line} />}
+                    </View>
+                  );
+                })}
+              </View>
+              <View style={styles.textInfoContainer}>
+                <Text style={styles.textInfo}>
+                  Looks like a <Text style={styles.textInfo2}>{topBreed}</Text>.
+                  Feeding for a <Text style={styles.textInfo2}>{topBreed}</Text>{" "}
+                  should be safe, but always double‑check with your vet.
+                </Text>
+              </View>
+            </View>
+            <Text
+              style={[
+                styles.p,
+                { marginVertical: 20, maxWidth: "90%", textAlign: "center" },
+              ]}
+            >
+              Not happy? Try another photo.
+            </Text>
+            <View style={{ width: "100%", paddingHorizontal: 15 }}>
+              <ButtonLarge buttonName="I agree" onPress={handleAgree} />
+            </View>
+            <Pressable style={styles.tryAgainWrapper} onPress={handleTryAgain}>
+              <Text style={styles.tryAgainText}>Try Again</Text>
+            </Pressable>
+            <Pressable style={{ marginTop: 40 }} onPress={handleCancel}>
+              <Text style={styles.cancel}>Cancel</Text>
+            </Pressable>
+          </View>
         )}
       </ScrollView>
       {loading && <BreedAnalysisLoading />}
@@ -549,4 +361,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default BreedRecognitionScreen;
+export default React.memo(BreedRecognitionScreen);
