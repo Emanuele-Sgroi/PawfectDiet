@@ -1,24 +1,28 @@
-import React, { useState } from "react";
-import { View, Text, StyleSheet, Image } from "react-native";
-import { images } from "../../constants/index";
+/*
+  BreedAnalysisLoading
+  --------------------
+  Full‑screen hold screen while TensorFlow chews on the photo.
+  Just a sleeping dog gif + a few reassuring lines.
+*/
 
-const BreedAnalysisLoading = () => {
-  return (
-    <View style={styles.fullScreenOverlay}>
-      <View style={styles.centeredContent}>
-        <Image source={images.dog_sleeping} style={styles.image} />
-        <View style={styles.textWrapper}>
-          <Text style={styles.h1}>The system is analysing the breed...</Text>
-          <Text style={styles.h2}>This process might take a while</Text>
-        </View>
-        <Text style={styles.h3}>
-          Please do not close the App or leave this page until the analysis is
-          complete
-        </Text>
+import React from "react";
+import { View, Text, StyleSheet, Image } from "react-native";
+import { images } from "../../constants";
+
+const BreedAnalysisLoading = () => (
+  <View style={styles.fullScreenOverlay}>
+    <View style={styles.centeredContent}>
+      <Image source={images.dog_sleeping} style={styles.image} />
+      <View style={styles.textWrapper}>
+        <Text style={styles.h1}>The system is analysing the breed…</Text>
+        <Text style={styles.h2}>This might take a minute</Text>
       </View>
+      <Text style={styles.h3}>
+        Please keep this screen open until we’re done.
+      </Text>
     </View>
-  );
-};
+  </View>
+);
 
 const styles = StyleSheet.create({
   fullScreenOverlay: {
@@ -37,29 +41,21 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  image: {
-    width: 200,
-    height: 105,
-    marginBottom: 30,
-  },
-  textWrapper: {
-    justifyContent: "center",
-    alignItems: "center",
-    gap: 5,
-  },
+  image: { width: 200, height: 105, marginBottom: 30 },
+  textWrapper: { justifyContent: "center", alignItems: "center", gap: 5 },
   h1: {
     fontSize: 18,
-    color: "#fff",
+    color: "#FFFFFF",
     fontFamily: "MerriweatherSans-ExtraBold",
   },
   h2: {
     fontSize: 15,
-    color: "#fff",
+    color: "#FFFFFF",
     fontFamily: "MerriweatherSans-Regular",
   },
   h3: {
     fontSize: 15,
-    color: "#fff",
+    color: "#FFFFFF",
     fontFamily: "MerriweatherSans-Regular",
     textAlign: "center",
     maxWidth: "90%",
@@ -75,10 +71,10 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     fontSize: 18,
-    color: "#fff",
+    color: "#FFFFFF",
     fontFamily: "MerriweatherSans-ExtraBold",
     marginBottom: 5,
   },
 });
 
-export default BreedAnalysisLoading;
+export default React.memo(BreedAnalysisLoading);
