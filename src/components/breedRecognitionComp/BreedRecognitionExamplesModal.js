@@ -1,4 +1,11 @@
-import React, { useState } from "react";
+/*
+  BreedRecognitionExamplesModal
+  -----------------------------
+  Quick overlay showcasing good vs bad sample photos for breed recognition.
+  Tap “Close” (or anywhere on the dimmed backdrop) to dismiss.
+*/
+
+import React from "react";
 import {
   View,
   Text,
@@ -7,60 +14,47 @@ import {
   ImageBackground,
   Image,
 } from "react-native";
-import { images } from "../../constants/index";
+import { images } from "../../constants";
 
-const BreedRecognitionExamplesModal = ({ onClosePress }) => {
-  const goodExamples = [
-    images.example_good_1,
-    images.example_good_2,
-    images.example_good_3,
-    images.example_good_4,
-  ];
-  const badExamples = [
-    images.example_bad_1,
-    images.example_bad_2,
-    images.example_bad_3,
-    images.example_bad_4,
-  ];
+const goodPics = [
+  images.example_good_1,
+  images.example_good_2,
+  images.example_good_3,
+  images.example_good_4,
+];
+const badPics = [
+  images.example_bad_1,
+  images.example_bad_2,
+  images.example_bad_3,
+  images.example_bad_4,
+];
 
-  return (
-    <View style={styles.container}>
-      <Pressable style={styles.buttonClose} onPress={onClosePress}>
-        <Text style={styles.buttonCloseText}>Close</Text>
-      </Pressable>
-      <View style={styles.imagesContainer}>
-        {goodExamples.map((img, index) => {
-          return (
-            <View key={index} style={styles.imageContainer}>
-              <ImageBackground
-                source={img}
-                resizeMode="cover"
-                style={styles.image}
-              >
-                <Image source={images.yes} style={styles.icon} />
-              </ImageBackground>
-            </View>
-          );
-        })}
+const BreedRecognitionExamplesModal = ({ onClosePress }) => (
+  <View style={styles.container}>
+    <Pressable style={styles.buttonClose} onPress={onClosePress}>
+      <Text style={styles.buttonCloseText}>Close</Text>
+    </Pressable>
+
+    {[
+      { data: goodPics, icon: images.yes },
+      { data: badPics, icon: images.close },
+    ].map(({ data, icon }, row) => (
+      <View key={row} style={styles.imagesContainer}>
+        {data.map((src, i) => (
+          <View key={i} style={styles.imageContainer}>
+            <ImageBackground
+              source={src}
+              resizeMode="cover"
+              style={styles.image}
+            >
+              <Image source={icon} style={styles.icon} />
+            </ImageBackground>
+          </View>
+        ))}
       </View>
-      <View style={styles.imagesContainer}>
-        {badExamples.map((img, index) => {
-          return (
-            <View key={index} style={styles.imageContainer}>
-              <ImageBackground
-                source={img}
-                resizeMode="cover"
-                style={styles.image}
-              >
-                <Image source={images.close} style={styles.icon} />
-              </ImageBackground>
-            </View>
-          );
-        })}
-      </View>
-    </View>
-  );
-};
+    ))}
+  </View>
+);
 
 const styles = StyleSheet.create({
   container: {
@@ -120,4 +114,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default BreedRecognitionExamplesModal;
+export default React.memo(BreedRecognitionExamplesModal);
