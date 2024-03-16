@@ -1,3 +1,11 @@
+/*
+  PhotoUploadComponent
+  --------------------
+  One‑photo uploader for the breed recognition flow. Handles gallery/camera
+  pick, progress ring, Firebase upload, delete, and passes the result back
+  up via `onPhotosChange`.
+*/
+
 import React, { useState } from "react";
 import {
   View,
@@ -7,111 +15,83 @@ import {
   Text,
   Pressable,
 } from "react-native";
-import AddIcon from "react-native-vector-icons/Ionicons";
-import EmptyImg from "react-native-vector-icons/MaterialCommunityIcons";
-import DeleteIcon from "react-native-vector-icons/MaterialCommunityIcons";
+import Ionicons from "react-native-vector-icons/Ionicons";
+import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import * as ImagePicker from "expo-image-picker";
 import * as SecureStore from "expo-secure-store";
-import CameraGallery from "../modals/CameraGallery";
-import { storage } from "../../../firebaseConfig";
 import {
   ref,
   uploadBytesResumable,
   getDownloadURL,
   deleteObject,
 } from "firebase/storage";
-import Toast from "react-native-toast-message";
 import { AnimatedCircularProgress } from "react-native-circular-progress";
+import Toast from "react-native-toast-message";
+
+import CameraGallery from "../modals/CameraGallery";
+import { storage } from "../../../firebaseConfig";
 
 const PhotoUploadComponent = ({ onPhotosChange }) => {
-  const [uploadedPhoto, setUploadedPhoto] = useState(null);
-  const [isAddPressed, setIsAddPressed] = useState(false);
-
+  // ── state
+  const [file, setFile] = useState(null); // { uri, storagePath }
+  const [pickerVisible, setPickerVisible] = useState(false);
   const [progress, setProgress] = useState(0);
 
-  const handleImageSelection = async (launchFunction) => {
+  // ── toast helpers
+  const toast = (msg, type = "error") => Toast.show({ type, text1: msg });
+
+  // ── image pick + upload
+  const pickImage = async (launcher) => {
     const userId = await SecureStore.getItemAsync("userId");
-    const result = await launchFunction({
+    const res = await launcher({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       quality: 1,
     });
+    if (res.cancelled) return;
 
-    if (!result.cancelled) {
-      setIsAddPressed(false);
-      const uri = result.assets[0].uri;
-      const fileName = `${userId}/breedRecognitionTemp/${new Date().getTime()}`;
-      if (uploadedPhoto) {
-        // Delete the previous photo from Firebase before uploading a new one
-        await deleteImageFromFirebase(uploadedPhoto.storagePath);
-      }
-      uploadImage(uri, fileName);
-    }
+    setPickerVisible(false);
+    const uri = res.assets[0].uri;
+    const storagePath = `${userId}/breedRecognitionTemp/${Date.now()}`;
+
+    if (file) await deleteObject(ref(storage, file.storagePath)); // cleanup previous
+    upload(uri, storagePath);
   };
 
-  const uploadImage = async (uri, fileName) => {
-    const response = await fetch(uri);
-    const blob = await response.blob();
-    const storageRef = ref(storage, fileName);
-    const uploadTask = uploadBytesResumable(storageRef, blob);
-
-    uploadTask.on(
+  const upload = async (uri, storagePath) => {
+    const blob = await (await fetch(uri)).blob();
+    const task = uploadBytesResumable(ref(storage, storagePath), blob);
+    task.on(
       "state_changed",
-      (snapshot) => {
-        const prog = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-        setProgress(prog);
-      },
-      (error) => {
-        console.error("Upload error: ", error);
-        onToastError("Upload failed");
-      },
+      (s) => setProgress((s.bytesTransferred / s.totalBytes) * 100),
+      () => toast("Upload failed"),
       async () => {
-        const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-        setUploadedPhoto({ uri: downloadURL, storagePath: fileName });
-        onPhotosChange({ uri: downloadURL, storagePath: fileName });
+        const url = await getDownloadURL(task.snapshot.ref);
+        const uploaded = { uri: url, storagePath };
+        setFile(uploaded);
+        onPhotosChange(uploaded);
+        setProgress(0);
       }
     );
   };
 
-  const deleteImageFromFirebase = async (storagePath) => {
-    const fileRef = ref(storage, storagePath);
-    await deleteObject(fileRef);
+  // ── delete
+  const deleteCurrent = async () => {
+    if (!file) return;
+    await deleteObject(ref(storage, file.storagePath));
+    setFile(null);
+    onPhotosChange(null);
+    toast("Image deleted", "success");
   };
 
-  const deleteImage = async () => {
-    if (uploadedPhoto && uploadedPhoto.storagePath) {
-      await deleteImageFromFirebase(uploadedPhoto.storagePath);
-      setUploadedPhoto(null);
-      setProgress(0);
-      onPhotosChange(null);
-      onToastSuccess("Image deleted successfully");
-    }
-  };
-
-  const onToastError = (message) => {
-    Toast.show({
-      type: "error",
-      text1: message,
-    });
-  };
-
-  const onToastSuccess = (message) => {
-    Toast.show({
-      type: "success",
-      text1: message,
-    });
-  };
-
+  // ── UI
   return (
     <>
       <View style={styles.container}>
+        {/* header */}
         <View style={styles.buttonContainer}>
-          <TouchableOpacity
-            onPress={() => {
-              setIsAddPressed(true);
-            }}
-          >
-            <AddIcon
+          <TouchableOpacity onPress={() => setPickerVisible(true)}>
+            <Ionicons
               name="add-circle"
               size={32}
               color="#181C39"
@@ -121,22 +101,23 @@ const PhotoUploadComponent = ({ onPhotosChange }) => {
           <Text style={styles.h1}>Upload Photos</Text>
         </View>
 
+        {/* preview / progress */}
         <View style={styles.photoContainer}>
           <View style={styles.box}>
-            {!uploadedPhoto && !progress ? (
-              // Render the pressable empty box if there is no uploaded photo and no progress
+            {!file && progress === 0 && (
               <Pressable
                 style={styles.emptyBox}
-                onPress={() => setIsAddPressed(true)}
+                onPress={() => setPickerVisible(true)}
               >
-                <EmptyImg
+                <MaterialCommunityIcons
                   name="tooltip-image-outline"
                   size={40}
                   color="#181C39"
                   style={styles.emptyImage}
                 />
               </Pressable>
-            ) : progress > 0 && progress < 100 ? (
+            )}
+            {progress > 0 && progress < 100 && (
               <AnimatedCircularProgress
                 size={50}
                 width={2}
@@ -150,34 +131,28 @@ const PhotoUploadComponent = ({ onPhotosChange }) => {
                   )}%`}</Text>
                 )}
               </AnimatedCircularProgress>
-            ) : uploadedPhoto ? (
-              // Render the uploaded photo and delete icon if there is an uploaded photo
+            )}
+            {file && progress === 0 && (
               <>
-                <Image
-                  source={{ uri: uploadedPhoto.uri }}
-                  style={styles.imageStyle}
-                />
-                <DeleteIcon
+                <Image source={{ uri: file.uri }} style={styles.imageStyle} />
+                <MaterialCommunityIcons
                   name="delete-circle-outline"
                   size={40}
                   color="#F14336"
                   style={styles.removeIcon}
-                  onPress={deleteImage}
+                  onPress={deleteCurrent}
                 />
               </>
-            ) : null}
+            )}
           </View>
         </View>
       </View>
-      {isAddPressed && (
+
+      {pickerVisible && (
         <CameraGallery
-          onGalleryPress={() =>
-            handleImageSelection(ImagePicker.launchImageLibraryAsync)
-          }
-          onCameraPress={() =>
-            handleImageSelection(ImagePicker.launchCameraAsync)
-          }
-          onClosePress={() => setIsAddPressed(false)}
+          onGalleryPress={() => pickImage(ImagePicker.launchImageLibraryAsync)}
+          onCameraPress={() => pickImage(ImagePicker.launchCameraAsync)}
+          onClosePress={() => setPickerVisible(false)}
         />
       )}
     </>
@@ -219,27 +194,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "#ffffff",
   },
-  emptyImage: {
-    opacity: 0.5,
-  },
-  addIcon: {
-    marginEnd: 5,
-  },
-  h1: {
-    fontFamily: "MerriweatherSans-Bold",
-    color: "#000000",
-    fontSize: 16,
-  },
-  imageStyle: {
-    width: "100%",
-    height: "100%",
-    resizeMode: "cover",
-  },
-  removeIcon: {
-    position: "absolute",
-    bottom: 0,
-    right: 0,
-  },
+  emptyImage: { opacity: 0.5 },
+  addIcon: { marginEnd: 5 },
+  h1: { fontFamily: "MerriweatherSans-Bold", color: "#000000", fontSize: 16 },
+  imageStyle: { width: "100%", height: "100%", resizeMode: "cover" },
+  removeIcon: { position: "absolute", bottom: 0, right: 0 },
 });
 
-export default PhotoUploadComponent;
+export default React.memo(PhotoUploadComponent);
