@@ -1,39 +1,46 @@
+/*
+  DashboardScreen
+  ---------------
+  Home hub: top nav + a stack of dashboard widgets. Each WIP tile opens the
+  placeholder info modal until we flesh them out.
+*/
+
 import React, { useState } from "react";
 import { View, StyleSheet, ScrollView } from "react-native";
 import {
   TopNav,
-  StandardInfoModal,
   InfoModalTemoButton,
   CaloriesSummary,
   QuickEntries,
   WeigthMonitoring,
   VetTips,
   Discover,
-} from "../../components/index";
+} from "../../components";
 
 const DashboardScreen = () => {
-  const [isInfoOpen, setIsInfoOpen] = useState(false);
+  const [infoOpen, setInfoOpen] = useState(false);
+  const openInfo = () => setInfoOpen(true);
 
   return (
     <>
       <View style={styles.container}>
-        <TopNav isInfoOpen={isInfoOpen} onPress={() => setIsInfoOpen(true)} />
+        <TopNav isInfoOpen={infoOpen} onPress={openInfo} />
         <ScrollView style={styles.scrollContainer}>
           <View style={styles.contentContainer}>
             <CaloriesSummary />
-            <QuickEntries onPress={() => setIsInfoOpen(true)} />
-            <WeigthMonitoring onPress={() => setIsInfoOpen(true)} />
+            <QuickEntries onPress={openInfo} />
+            <WeigthMonitoring onPress={openInfo} />
             <VetTips />
-            <Discover onPress={() => setIsInfoOpen(true)} />
+            <Discover onPress={openInfo} />
           </View>
         </ScrollView>
       </View>
 
-      {isInfoOpen && (
+      {infoOpen && (
         <InfoModalTemoButton
           title="Coming Soon"
           message="This section is under development."
-          onOkPress={() => setIsInfoOpen(false)}
+          onOkPress={() => setInfoOpen(false)}
         />
       )}
     </>
@@ -41,22 +48,9 @@ const DashboardScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    flexDirection: "column",
-    justifyContent: "flex-start",
-    alignItems: "center",
-    backgroundColor: "#E6ECFC",
-  },
-  scrollContainer: {
-    width: "100%",
-  },
-  contentContainer: {
-    flex: 1,
-    flexDirection: "column",
-    justifyContent: "center",
-    alignItems: "center",
-  },
+  container: { flex: 1, backgroundColor: "#E6ECFC", alignItems: "center" },
+  scrollContainer: { width: "100%" },
+  contentContainer: { flex: 1, alignItems: "center" },
 });
 
-export default DashboardScreen;
+export default React.memo(DashboardScreen);
