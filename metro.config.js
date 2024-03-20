@@ -1,9 +1,15 @@
-// Learn more https://docs.expo.io/guides/customizing-metro
+// metro.config.js
+// small tweaks: allow .cjs & model weight .bin files to pass Metro bundler
+
 const { getDefaultConfig } = require("expo/metro-config");
 
-// /** @type {import('expo/metro-config').MetroConfig} */
+/** @type {import('expo/metro-config').MetroConfig} */
 const config = getDefaultConfig(__dirname);
-config.resolver.assetExts.push("cjs");
-config.resolver.assetExts.push("bin");
+const { assetExts } = config.resolver;
+
+// add custom extensions only if not already present
+["cjs", "bin"].forEach((ext) => {
+  if (!assetExts.includes(ext)) assetExts.push(ext);
+});
 
 module.exports = config;
