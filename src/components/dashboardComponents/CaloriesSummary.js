@@ -1,3 +1,12 @@
+/*
+  CaloriesSummary
+  ---------------
+  Dashboard tile that crunches today’s calories from food vs calories burned out and draws a cute
+  goal bar. Fetches the active dog + latest health goals on focus, then
+  ensures there’s a daily log doc (creates one if missing).
+
+*/
+
 import React, { useState, useCallback } from "react";
 import {
   View,
@@ -7,9 +16,13 @@ import {
   TouchableOpacity,
   ImageBackground,
 } from "react-native";
-import { images } from "../../constants/index";
+import {
+  useFocusEffect,
+  useNavigation,
+  useIsFocused,
+} from "@react-navigation/native";
 import { format } from "date-fns";
-import { db } from "../../../firebaseConfig";
+import * as SecureStore from "expo-secure-store";
 import {
   collection,
   query,
@@ -20,312 +33,176 @@ import {
   limit,
   setDoc,
 } from "firebase/firestore";
-import * as SecureStore from "expo-secure-store";
-import {
-  useNavigation,
-  useFocusEffect,
-  useIsFocused,
-} from "@react-navigation/native";
+
+import { images } from "../../constants";
+import { db } from "../../../firebaseConfig";
 
 const CaloriesSummary = () => {
   const navigation = useNavigation();
-  const [selectedDate, setSelectedDate] = useState(new Date());
-  const [healthGoals, setHealthGoals] = useState(null);
-  const [dogInfo, setDogInfo] = useState([]);
-  const initialFeedLogs = {
-    meals: [],
-    activities: [],
-    work: {
-      name: dogInfo.isWorkingDog ? dogInfo.workType : "Not working",
-      duration: 0,
-      calories: 0,
-      time: 0,
-    },
-    mealsCalories: 0,
-    treatsCalories: 0,
-    activityCalories: 0,
-    workCalories: 0,
-    remainingCalories: 0,
-  };
-  const [feedLogs, setFeedLogs] = useState(initialFeedLogs);
-  const [isLoading, setIsLoading] = useState(true);
   const isFocused = useIsFocused();
 
-  useFocusEffect(
-    useCallback(() => {
-      let isActive = true;
-      setIsLoading(true);
-      const startLoadingTime = Date.now();
+  const [selectedDate] = useState(new Date());
+  const [healthGoals, setHealthGoals] = useState(null);
+  const [dogInfo, setDogInfo] = useState(null);
+  const [feedLogs, setFeedLogs] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-      const fetchDogInfoAndGoals = async () => {
-        const userId = await SecureStore.getItemAsync("userId");
-        const activeDogProfile = await SecureStore.getItemAsync(
-          "activeDogProfile"
-        );
-        if (!userId || !activeDogProfile) {
-          console.log("User ID or active dog profile missing");
-          return;
-        }
-
-        const dogRef = doc(db, `users/${userId}/dogs/${activeDogProfile}`);
-        const dogSnap = await getDoc(dogRef);
-
-        if (dogSnap.exists()) {
-          setDogInfo(dogSnap.data());
-        } else {
-          console.log("No such document for dog info!");
-          return;
-        }
-
-        const goalsQuery = query(
-          collection(dogRef, "healthGoals"),
-          orderBy("createdAt", "desc"),
-          limit(1)
-        );
-        const goalsSnap = await getDocs(goalsQuery);
-        if (!goalsSnap.empty) {
-          const goalsData = goalsSnap.docs[0].data();
-          setHealthGoals(goalsData);
-        } else {
-          console.log("No health goals found");
-        }
-      };
-
-      const fetchFeedLogs = async () => {
-        const userId = await SecureStore.getItemAsync("userId");
-        const activeDogProfile = await SecureStore.getItemAsync(
-          "activeDogProfile"
-        );
-        if (!userId || !activeDogProfile) {
-          console.log("User ID or active dog profile missing");
-          return;
-        }
-
-        if (!dogInfo || !selectedDate || !healthGoals) return;
-
-        const formattedDate = format(selectedDate, "yyyy-MM-dd");
-        const feedLogRef = doc(
-          db,
-          `users/${userId}/dogs/${activeDogProfile}/feedLog/${formattedDate}`
-        );
-
-        const feedLogSnap = await getDoc(feedLogRef);
-
-        if (feedLogSnap.exists()) {
-          setFeedLogs(feedLogSnap.data().logs);
-        } else {
-          // console.log("No feed log found for the selected date");
-          setFeedLogs([]);
-        }
-      };
-
-      const initializeOrFetchDailyLog = async () => {
-        if (dogInfo && healthGoals) {
-          const initializeOrFetchDailyLog = async () => {
-            const userId = await SecureStore.getItemAsync("userId");
-            const activeDogProfile = await SecureStore.getItemAsync(
-              "activeDogProfile"
-            );
-            const formattedDate = format(selectedDate, "yyyy-MM-dd");
-
-            const dailyLogRef = doc(
-              db,
-              `users/${userId}/dogs/${activeDogProfile}/dailyLogs/${formattedDate}`
-            );
-
-            const dailyLogSnap = await getDoc(dailyLogRef);
-
-            if (!dailyLogSnap.exists()) {
-              await setDoc(dailyLogRef, {
-                remainingCalories: parseFloat(
-                  healthGoals.dailyCalories
-                ).toFixed(0),
-                remainingProteinGrams: parseFloat(
-                  (
-                    (healthGoals.dailyCalories * healthGoals.dailyProtein) /
-                    100 /
-                    4
-                  ).toFixed(0)
-                ),
-                remainingFatGrams: parseFloat(
-                  (healthGoals.dailyCalories * healthGoals.dailyFat) / 100 / 9
-                ).toFixed(0),
-                remainingCarbsGrams: parseFloat(
-                  (
-                    (healthGoals.dailyCalories * healthGoals.dailyCarbs) /
-                    100 /
-                    4
-                  ).toFixed(0)
-                ),
-                mealsCalories: 0,
-                treatsCalories: 0,
-                activityCalories: 0,
-                workCalories: 0,
-                meals: [],
-                treats: [],
-                activities: [],
-                work: {
-                  name: dogInfo.isWorkingDog ? dogInfo.workType : "Not working",
-                  duration: 0,
-                  calories: 0,
-                  time: 0,
-                },
-              });
-            } else {
-              setFeedLogs(dailyLogSnap.data());
-            }
-          };
-
-          initializeOrFetchDailyLog();
-        }
-      };
-
-      const ensureMinimumLoadingTime = new Promise((resolve) => {
-        const minLoadingTime = 1500;
-        const loadingDuration = Date.now() - startLoadingTime;
-        setTimeout(resolve, Math.max(0, minLoadingTime - loadingDuration));
-      });
-
-      const fetchData = async () => {
-        if (!isActive) return;
-
-        try {
-          await Promise.all([
-            fetchDogInfoAndGoals(),
-            fetchFeedLogs(),
-            initializeOrFetchDailyLog(),
-            ensureMinimumLoadingTime,
-          ]);
-        } catch (error) {
-          console.error("Error fetching data:", error);
-        } finally {
-          if (isActive) setIsLoading(false);
-        }
-      };
-
-      if (isFocused) {
-        fetchData();
-      }
-
-      return () => {
-        isActive = false;
-      };
-    }, [isFocused])
-  );
-
-  const renderCaloriesView = () => {
-    return (
-      <>
-        {healthGoals && dogInfo && feedLogs ? (
-          <View style={styles.dailyGoals}>
-            <View style={styles.goalWrapper}>
-              <Image source={images.flag_white} style={styles.goalIcon} />
-              <View
-                style={{
-                  flexDirection: "column",
-                  justifyContent: "center",
-                  alignItems: "flex-start",
-                }}
-              >
-                <Text style={styles.goalText}>Goal</Text>
-                <Text style={styles.goalText}>
-                  {Math.round(healthGoals.dailyCalories)}
-                </Text>
-              </View>
-            </View>
-            <View style={styles.goalWrapper}>
-              <Image source={images.feed_log} style={styles.goalIcon} />
-              <View
-                style={{
-                  flexDirection: "column",
-                  justifyContent: "center",
-                  alignItems: "flex-start",
-                }}
-              >
-                <Text style={styles.goalText}>Food</Text>
-                <Text style={styles.goalText}>
-                  {Math.round(feedLogs.mealsCalories)}
-                </Text>
-              </View>
-            </View>
-            <View style={styles.goalWrapper}>
-              <Image source={images.saved_food} style={styles.goalIcon} />
-              <View
-                style={{
-                  flexDirection: "column",
-                  justifyContent: "center",
-                  alignItems: "flex-start",
-                }}
-              >
-                <Text style={styles.goalText}>Treats</Text>
-                <Text style={styles.goalText}>
-                  {Math.round(feedLogs.treatsCalories)}
-                </Text>
-              </View>
-            </View>
-            <View style={styles.goalWrapper}>
-              <Image source={images.calories_white} style={styles.goalIcon} />
-              <View
-                style={{
-                  flexDirection: "column",
-                  justifyContent: "center",
-                  alignItems: "flex-start",
-                }}
-              >
-                <Text style={styles.goalText}>Burned</Text>
-                <Text style={styles.goalText}>
-                  {Math.round(
-                    feedLogs.activityCalories + feedLogs.workCalories
-                  )}
-                </Text>
-              </View>
-            </View>
-          </View>
-        ) : (
-          <Text>Loading...</Text>
-        )}
-      </>
-    );
-  };
-
+  // ────────────────── helpers
   const caloriesRemaining =
-    healthGoals && dogInfo && feedLogs
+    healthGoals && feedLogs
       ? Math.round(
-          parseFloat(healthGoals.dailyCalories).toFixed(0) -
-            parseFloat(feedLogs.mealsCalories).toFixed(0) -
-            parseFloat(feedLogs.treatsCalories).toFixed(0) +
+          healthGoals.dailyCalories -
+            feedLogs.mealsCalories -
+            feedLogs.treatsCalories +
             feedLogs.activityCalories +
             feedLogs.workCalories
         )
       : 0;
 
+  // ────────────────── data fetcher
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      const start = Date.now();
+
+      const ensureDailyLogDoc = async (userId, dogName, goals, dog) => {
+        const dateKey = format(selectedDate, "yyyy-MM-dd");
+        const ref = doc(
+          db,
+          `users/${userId}/dogs/${dogName}/dailyLogs/${dateKey}`
+        );
+        const snap = await getDoc(ref);
+        if (!snap.exists()) {
+          await setDoc(ref, {
+            remainingCalories: Math.round(goals.dailyCalories),
+            remainingProteinGrams: Math.round(
+              (goals.dailyCalories * goals.dailyProtein) / 100 / 4
+            ),
+            remainingFatGrams: Math.round(
+              (goals.dailyCalories * goals.dailyFat) / 100 / 9
+            ),
+            remainingCarbsGrams: Math.round(
+              (goals.dailyCalories * goals.dailyCarbs) / 100 / 4
+            ),
+            mealsCalories: 0,
+            treatsCalories: 0,
+            activityCalories: 0,
+            workCalories: 0,
+            meals: [],
+            treats: [],
+            activities: [],
+            work: {
+              name: dog.isWorkingDog ? dog.workType : "Not working",
+              duration: 0,
+              calories: 0,
+              time: 0,
+            },
+          });
+        } else {
+          setFeedLogs(snap.data());
+        }
+      };
+
+      const load = async () => {
+        const uid = await SecureStore.getItemAsync("userId");
+        const dogName = await SecureStore.getItemAsync("activeDogProfile");
+        if (!uid || !dogName) return;
+
+        // dog info
+        const dogSnap = await getDoc(doc(db, `users/${uid}/dogs/${dogName}`));
+        if (!dogSnap.exists()) return;
+        const dog = dogSnap.data();
+        if (!active) return;
+        setDogInfo(dog);
+
+        // goals
+        const goalsQ = query(
+          collection(doc(db, `users/${uid}/dogs/${dogName}`), "healthGoals"),
+          orderBy("createdAt", "desc"),
+          limit(1)
+        );
+        const goalsSnap = await getDocs(goalsQ);
+        if (goalsSnap.empty) return;
+        const goals = goalsSnap.docs[0].data();
+        if (!active) return;
+        setHealthGoals(goals);
+
+        // ensure / fetch daily log
+        await ensureDailyLogDoc(uid, dogName, goals, dog);
+
+        // fetch feed logs (after possible doc creation)
+        const logsSnap = await getDoc(
+          doc(
+            db,
+            `users/${uid}/dogs/${dogName}/dailyLogs/${format(
+              selectedDate,
+              "yyyy-MM-dd"
+            )}`
+          )
+        );
+        if (logsSnap.exists()) setFeedLogs(logsSnap.data());
+      };
+
+      const minDelay = () =>
+        new Promise((r) =>
+          setTimeout(r, Math.max(0, 1500 - (Date.now() - start)))
+        );
+
+      if (isFocused) {
+        Promise.all([load(), minDelay()]).finally(
+          () => active && setLoading(false)
+        );
+      }
+
+      return () => {
+        active = false;
+      };
+    }, [isFocused, selectedDate])
+  );
+
+  // ────────────────── render helpers (unchanged UI mostly)
+  const renderGoalsRow = () => (
+    <View style={styles.dailyGoals}>
+      {[
+        {
+          ico: images.flag_white,
+          label: "Goal",
+          val: Math.round(healthGoals.dailyCalories),
+        },
+        {
+          ico: images.feed_log,
+          label: "Food",
+          val: Math.round(feedLogs.mealsCalories),
+        },
+        {
+          ico: images.saved_food,
+          label: "Treats",
+          val: Math.round(feedLogs.treatsCalories),
+        },
+        {
+          ico: images.calories_white,
+          label: "Burned",
+          val: Math.round(feedLogs.activityCalories + feedLogs.workCalories),
+        },
+      ].map(({ ico, label, val }) => (
+        <View key={label} style={styles.goalWrapper}>
+          <Image source={ico} style={styles.goalIcon} />
+          <View>
+            <Text style={styles.goalText}>{label}</Text>
+            <Text style={styles.goalText}>{val}</Text>
+          </View>
+        </View>
+      ))}
+    </View>
+  );
+
   const renderGoalBar = () => {
-    const caloriesConsumed =
-      parseFloat(healthGoals.dailyCalories) - caloriesRemaining;
-    let fillPercentage = Math.min(
+    const consumed = healthGoals.dailyCalories - caloriesRemaining;
+    const pct = Math.min(
       100,
-      Math.max(
-        0,
-        (caloriesConsumed / parseFloat(healthGoals.dailyCalories)) * 100
-      )
+      Math.max(0, (consumed / healthGoals.dailyCalories) * 100)
     );
-
-    fillPercentage = Math.min(fillPercentage, 100);
-
-    const correction = 20;
-    let imageLeftPercentage = fillPercentage;
-    if (fillPercentage <= 0 + correction) {
-      imageLeftPercentage = 12;
-    } else if (fillPercentage >= 100) {
-      imageLeftPercentage = 100 - correction + 10;
-    }
-
-    const imagePosition = {
-      position: "absolute",
-      left: `${imageLeftPercentage}%`,
-      transform: [{ translateX: -correction }],
-    };
-
+    const leftPct = Math.min(100, pct <= 20 ? 12 : pct + 0);
     return (
       <View style={styles.goalBarContainer}>
         <View style={styles.barImagesContainer}>
@@ -334,7 +211,7 @@ const CaloriesSummary = () => {
               style={[
                 styles.goalBarFill,
                 {
-                  width: `${fillPercentage}%`,
+                  width: `${pct}%`,
                   backgroundColor:
                     caloriesRemaining < 0 ? "#bb2124" : "#22bb33",
                 },
@@ -342,7 +219,10 @@ const CaloriesSummary = () => {
             />
             <Image
               source={images.dog_white}
-              style={[styles.goalBarImage, imagePosition]}
+              style={[
+                styles.goalBarImage,
+                { left: `${leftPct}%`, transform: [{ translateX: -20 }] },
+              ]}
             />
           </View>
           <Image source={images.jumping} style={styles.jumpMan} />
@@ -351,68 +231,59 @@ const CaloriesSummary = () => {
     );
   };
 
-  return (
-    <>
-      {healthGoals && dogInfo && feedLogs ? (
-        <ImageBackground source={images.park} style={styles.container}>
-          <View style={styles.titleView}>
-            <Text style={styles.title}>Today</Text>
-            <TouchableOpacity
-              style={styles.button}
-              onPress={() => {
-                navigation.navigate("HealthGoals", { refresh: true });
-              }}
-            >
-              <Text style={styles.buttonText}>View Goals</Text>
-            </TouchableOpacity>
-          </View>
-          <View style={styles.caloriesView}>
-            {!isLoading ? (
-              <>
-                <Text style={styles.h1}>Calories Summary</Text>
-                {renderCaloriesView()}
-                <View style={styles.line} />
-                <Text
-                  style={[
-                    styles.h2,
-                    {
-                      color:
-                        caloriesRemaining < 0
-                          ? "#bb2124"
-                          : caloriesRemaining === 0
-                          ? "#22bb33"
-                          : "#fff",
-                    },
-                  ]}
-                >
-                  {caloriesRemaining}
-                  <Text style={styles.h3}> Calories Remaining</Text>
-                </Text>
-                {renderGoalBar()}
-                <TouchableOpacity
-                  style={styles.logButton}
-                  onPress={() => {
-                    navigation.navigate("Feed Log", { refresh: true });
-                  }}
-                >
-                  <Text style={styles.logText}>View Feed Log</Text>
-                </TouchableOpacity>
-              </>
-            ) : (
-              <Image
-                source={images.dog_gif}
-                style={styles.logo}
-                resizeMode="contain"
-              />
-            )}
-          </View>
+  // ────────────────── main render
+  if (loading)
+    return (
+      <Image source={images.dog_gif} style={styles.logo} resizeMode="contain" />
+    );
+  if (!healthGoals || !feedLogs) return <Text>Loading…</Text>;
 
-          <Image source={images.dog_sit} style={styles.dogSit} />
-        </ImageBackground>
-      ) : (
-        <Text>Loading...</Text>
-      )}
-    </>
+  return (
+    <ImageBackground source={images.park} style={styles.container}>
+      {/* header row */}
+      <View style={styles.titleView}>
+        <Text style={styles.title}>Today</Text>
+        <TouchableOpacity
+          style={styles.button}
+          onPress={() => navigation.navigate("HealthGoals", { refresh: true })}
+        >
+          <Text style={styles.buttonText}>View Goals</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* card */}
+      <View style={styles.caloriesView}>
+        <Text style={styles.h1}>Calories Summary</Text>
+        {renderGoalsRow()}
+        <View style={styles.line} />
+        <Text
+          style={[
+            styles.h2,
+            {
+              color:
+                caloriesRemaining < 0
+                  ? "#bb2124"
+                  : caloriesRemaining === 0
+                  ? "#22bb33"
+                  : "#FFFFFF",
+            },
+          ]}
+        >
+          {" "}
+          {caloriesRemaining}
+          <Text style={styles.h3}> Calories Remaining</Text>
+        </Text>
+        {renderGoalBar()}
+        <TouchableOpacity
+          style={styles.logButton}
+          onPress={() => navigation.navigate("Feed Log", { refresh: true })}
+        >
+          <Text style={styles.logText}>View Feed Log</Text>
+        </TouchableOpacity>
+      </View>
+
+      <Image source={images.dog_sit} style={styles.dogSit} />
+    </ImageBackground>
   );
 };
 
@@ -566,4 +437,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default CaloriesSummary;
+export default React.memo(CaloriesSummary);
