@@ -1,70 +1,68 @@
-import React, { useEffect, useState } from "react";
+/*
+  Discover
+  --------
+  Simple 2‑column grid of WIP tiles. Tap → placeholder onPress handler from
+  parent. Replace static array when backend delivers real content.
+*/
+
+import React from "react";
 import { View, Text, StyleSheet, Image, TouchableOpacity } from "react-native";
-import { images } from "../../constants/index";
+import { images } from "../../constants";
 
-const Discover = ({ onPress }) => {
-  const discoveryItems = [
-    {
-      img: images.recipe,
-      title: "Dog Recipes",
-      description: "Nutritious meals for your dog’s health.",
-    },
-    {
-      img: images.app_white,
-      title: "Sync Other Apps",
-      description: "Combine your favorite pet apps.",
-    },
-    {
-      img: images.train,
-      title: "Training",
-      description: "Pro tips for behavior and skills.",
-    },
-    {
-      img: images.vet,
-      title: "Vets Near You",
-      description: "Book appointments with local vets.",
-    },
-    {
-      img: images.friends,
-      title: "Friends",
-      description: "Connect and share with dog owners.",
-    },
-    {
-      img: images.community,
-      title: "Community",
-      description: "Exchange advice and join events.",
-    },
-  ];
+const items = [
+  {
+    img: images.recipe,
+    title: "Dog Recipes",
+    desc: "Nutritious meals for your dog’s health.",
+  },
+  {
+    img: images.app_white,
+    title: "Sync Other Apps",
+    desc: "Combine your favourite pet apps.",
+  },
+  {
+    img: images.train,
+    title: "Training",
+    desc: "Pro tips for behaviour and skills.",
+  },
+  {
+    img: images.vet,
+    title: "Vets Near You",
+    desc: "Book appointments with local vets.",
+  },
+  {
+    img: images.friends,
+    title: "Friends",
+    desc: "Connect and share with dog owners.",
+  },
+  {
+    img: images.community,
+    title: "Community",
+    desc: "Exchange advice and join events.",
+  },
+];
 
-  return (
-    <>
-      <View style={styles.container}>
-        <Text style={styles.header}>Discover</Text>
-        <View style={styles.gridContainer}>
-          {discoveryItems.map((item, index) => {
-            return (
-              <TouchableOpacity
-                key={index}
-                onPress={onPress}
-                style={styles.box}
-              >
-                <View style={styles.imgCircle}>
-                  <Image source={item.img} style={styles.img} />
-                </View>
-                <Text style={styles.h1}>{item.title}</Text>
-                <Text style={styles.h2}>{item.description}</Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-      </View>
-    </>
-  );
-};
+const Discover = ({ onPress }) => (
+  <View style={styles.container}>
+    <Text style={styles.header}>Discover</Text>
+    <View style={styles.gridContainer}>
+      {items.map(({ img, title, desc }) => (
+        <TouchableOpacity key={title} style={styles.box} onPress={onPress}>
+          <View style={styles.imgCircle}>
+            <Image source={img} style={styles.img} />
+          </View>
+          <Text style={styles.h1}>{title}</Text>
+          <Text style={styles.h2}>{desc}</Text>
+        </TouchableOpacity>
+      ))}
+    </View>
+  </View>
+);
+
+// styles unchanged ↓
 const styles = StyleSheet.create({
   container: {
     width: "100%",
-    flexDirection: "column",
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#E6ECFC",
@@ -73,9 +71,8 @@ const styles = StyleSheet.create({
   gridContainer: {
     width: "100%",
     flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-around",
     flexWrap: "wrap",
+    justifyContent: "space-around",
   },
   header: {
     fontSize: 20,
@@ -87,8 +84,8 @@ const styles = StyleSheet.create({
   box: {
     width: "45%",
     height: 200,
-    backgroundColor: "#fff",
-    shadowColor: "#000",
+    backgroundColor: "#FFFFFF",
+    shadowColor: "#000000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
     shadowRadius: 4,
@@ -103,15 +100,11 @@ const styles = StyleSheet.create({
     height: 60,
     borderRadius: 30,
     backgroundColor: "#273176",
-    justifyContent: "center",
     alignItems: "center",
+    justifyContent: "center",
     marginBottom: 10,
   },
-  img: {
-    width: 40,
-    height: 40,
-    resizeMode: "contain",
-  },
+  img: { width: 40, height: 40, resizeMode: "contain" },
   h1: {
     fontSize: 18,
     fontFamily: "MerriweatherSans-Bold",
@@ -128,4 +121,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default Discover;
+export default React.memo(Discover);
