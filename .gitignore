@@ -19,6 +19,10 @@ web-build/
 # Metro
 .metro-health-check*
 
+# Expo & React Native
+android/
+ios/
+
 # debug
 npm-debug.*
 yarn-debug.*

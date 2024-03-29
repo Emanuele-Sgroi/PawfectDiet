@@ -1,4 +1,3 @@
-// firebaseConfig.js
 import { initializeApp, getApp } from "firebase/app";
 import {
   initializeAuth,
@@ -26,14 +25,10 @@ const firebaseConfig = {
   appId: APP_ID,
 };
 
-// initialize Firebase App
 const app = initializeApp(firebaseConfig);
-// initialize Firebase Auth for that app immediately
 const auth = initializeAuth(app, {
   persistence: getReactNativePersistence(ReactNativeAsyncStorage),
 });
-
-// Initialize other services
 const db = getFirestore(app);
 const storage = getStorage(app);
 

@@ -1,28 +1,28 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import React, { useState, useEffect, useRef } from "react";
-import { AppLoading } from "expo";
+import React, { useState, useEffect } from "react";
+import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { NavigationContainer } from "@react-navigation/native";
 import * as Font from "expo-font";
-import {
-  NavigationContainer,
-  createNavigationContainerRef,
-} from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { StatusBar } from "expo-status-bar";
-import { StyleSheet, Text, View } from "react-native";
+import { Text, View, Image } from "react-native";
 import {
   LoginScreen,
   WelcomeScreen,
   SignupScreen,
   DogProfileCreationScreen,
-  MainScreen,
   BreedRecognitionScreen,
-} from "./screens/index";
+  DashboardScreen,
+  FeedLogScreen,
+  VetCareScreen,
+  SavedFoodScreen,
+  MoreMenuScreen,
+  SwitchDogProfileScreen,
+  HealthGoalsScreen,
+} from "./src/screens/index";
 import Toast from "react-native-toast-message";
-import * as SecureStore from "expo-secure-store";
-import { getDoc, doc } from "firebase/firestore";
-import { db } from "./firebaseConfig";
+import { images } from "./src/constants/index";
 
 const Stack = createNativeStackNavigator();
+const Tab = createBottomTabNavigator();
 
 export default function App() {
   const [fontLoaded, setFontLoaded] = useState(false);
@@ -30,18 +30,18 @@ export default function App() {
   useEffect(() => {
     const loadFonts = async () => {
       await Font.loadAsync({
-        "MerriweatherSans-Regular": require("./assets/fonts/MerriweatherSans-Regular.ttf"),
-        "MerriweatherSans-Bold": require("./assets/fonts/MerriweatherSans-Bold.ttf"),
-        "MerriweatherSans-BoldItalic": require("./assets/fonts/MerriweatherSans-BoldItalic.ttf"),
-        "MerriweatherSans-ExtraBold": require("./assets/fonts/MerriweatherSans-ExtraBold.ttf"),
-        "MerriweatherSans-ExtraBoldItalic": require("./assets/fonts/MerriweatherSans-ExtraBoldItalic.ttf"),
-        "MerriweatherSans-Italic": require("./assets/fonts/MerriweatherSans-Italic.ttf"),
-        "MerriweatherSans-Light": require("./assets/fonts/MerriweatherSans-Light.ttf"),
-        "MerriweatherSans-LightItalic": require("./assets/fonts/MerriweatherSans-LightItalic.ttf"),
-        "MerriweatherSans-Medium": require("./assets/fonts/MerriweatherSans-Medium.ttf"),
-        "MerriweatherSans-MediumItalic": require("./assets/fonts/MerriweatherSans-MediumItalic.ttf"),
-        "MerriweatherSans-SemiBold": require("./assets/fonts/MerriweatherSans-SemiBold.ttf"),
-        "MerriweatherSans-SemiBoldItalic": require("./assets/fonts/MerriweatherSans-SemiBoldItalic.ttf"),
+        "MerriweatherSans-Regular": require("./src/assets/fonts/MerriweatherSans-Regular.ttf"),
+        "MerriweatherSans-Bold": require("./src/assets/fonts/MerriweatherSans-Bold.ttf"),
+        "MerriweatherSans-BoldItalic": require("./src/assets/fonts/MerriweatherSans-BoldItalic.ttf"),
+        "MerriweatherSans-ExtraBold": require("./src/assets/fonts/MerriweatherSans-ExtraBold.ttf"),
+        "MerriweatherSans-ExtraBoldItalic": require("./src/assets/fonts/MerriweatherSans-ExtraBoldItalic.ttf"),
+        "MerriweatherSans-Italic": require("./src/assets/fonts/MerriweatherSans-Italic.ttf"),
+        "MerriweatherSans-Light": require("./src/assets/fonts/MerriweatherSans-Light.ttf"),
+        "MerriweatherSans-LightItalic": require("./src/assets/fonts/MerriweatherSans-LightItalic.ttf"),
+        "MerriweatherSans-Medium": require("./src/assets/fonts/MerriweatherSans-Medium.ttf"),
+        "MerriweatherSans-MediumItalic": require("./src/assets/fonts/MerriweatherSans-MediumItalic.ttf"),
+        "MerriweatherSans-SemiBold": require("./src/assets/fonts/MerriweatherSans-SemiBold.ttf"),
+        "MerriweatherSans-SemiBoldItalic": require("./src/assets/fonts/MerriweatherSans-SemiBoldItalic.ttf"),
       });
       setFontLoaded(true);
     };
@@ -57,10 +57,77 @@ export default function App() {
     );
   }
 
+  const MainScreen = () => {
+    return (
+      <Tab.Navigator
+        screenOptions={({ route }) => ({
+          headerShown: false,
+          tabBarIcon: ({ focused }) => {
+            let imageSource;
+
+            if (route.name === "Dashboard") {
+              imageSource = focused ? images.dashboard : images.dashboard_un;
+            } else if (route.name === "Feed Log") {
+              imageSource = focused ? images.feed_log : images.feed_log_un;
+            } else if (route.name === "Vet Care") {
+              imageSource = focused ? images.vet_care : images.vet_care_un;
+            } else if (route.name === "Saved Food") {
+              imageSource = focused ? images.saved_food : images.saved_food_un;
+            } else if (route.name === "More") {
+              imageSource = focused ? images.menu_more : images.menu_more_un;
+            }
+
+            // Return an Image component with the selected source
+            return (
+              <Image
+                source={imageSource}
+                style={{ width: 25, height: 25, resizeMode: "contain" }}
+              />
+            );
+          },
+          tabBarActiveTintColor: "#FFFFFF", // Optional: Used for label color
+          tabBarInactiveTintColor: "#898C9D", // Optional: Used for label color
+          tabBarLabelStyle: { paddingBottom: 5, fontSize: 11 }, // Optional: Style for the label
+          tabBarStyle: {
+            padding: 10,
+            height: 70,
+            backgroundColor: "#273176",
+          },
+        })}
+      >
+        <Tab.Screen
+          name="Dashboard"
+          component={DashboardScreen}
+          options={{ headerShown: false }}
+        />
+        <Tab.Screen
+          name="Feed Log"
+          component={FeedLogScreen}
+          options={{ headerShown: false }}
+        />
+        <Tab.Screen
+          name="Vet Care"
+          component={VetCareScreen}
+          options={{ headerShown: false }}
+        />
+        <Tab.Screen
+          name="Saved Food"
+          component={SavedFoodScreen}
+          options={{ headerShown: false }}
+        />
+        <Tab.Screen
+          name="More"
+          component={MoreMenuScreen}
+          options={{ headerShown: false }}
+        />
+      </Tab.Navigator>
+    );
+  };
+
   return (
     <>
       <NavigationContainer>
-        <Stack.Navigator initialRouteName="Welcome">
+        <Stack.Navigator name="Root" initialRouteName="Welcome">
           <Stack.Screen
             name="Welcome"
             component={WelcomeScreen}
@@ -92,9 +159,18 @@ export default function App() {
             component={BreedRecognitionScreen}
             options={{ headerShown: false }}
           />
+          <Stack.Screen
+            name="SwitchDog"
+            component={SwitchDogProfileScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="HealthGoals"
+            component={HealthGoalsScreen}
+            options={{ headerShown: false }}
+          />
         </Stack.Navigator>
       </NavigationContainer>
-      {/* <Toast ref={(ref) => Toast.setRef(ref)} /> */}
       <Toast />
     </>
   );
