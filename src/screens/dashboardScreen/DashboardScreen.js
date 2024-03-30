@@ -28,8 +28,8 @@ const DashboardScreen = () => {
         <ScrollView style={styles.scrollContainer}>
           <View style={styles.contentContainer}>
             <CaloriesSummary />
-            {/* <QuickEntries onPress={openInfo} />
-            <WeigthMonitoring onPress={openInfo} />
+            <QuickEntries onPress={openInfo} />
+            {/* <WeigthMonitoring onPress={openInfo} />
             <VetTips />
             <Discover onPress={openInfo} /> */}
           </View>
