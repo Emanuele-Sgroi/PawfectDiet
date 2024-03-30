@@ -44,8 +44,8 @@ const CaloriesSummary = () => {
   const [selectedDate] = useState(new Date());
   const [healthGoals, setHealthGoals] = useState(null);
   const [dogInfo, setDogInfo] = useState(null);
-  // const [feedLogs, setFeedLogs] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [feedLogs, setFeedLogs] = useState(null);
+  // const [loading, setLoading] = useState(true);
 
   // ────────────────── helpers
   const caloriesRemaining =
