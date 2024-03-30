@@ -37,11 +37,11 @@ const DashboardScreen = () => {
       </View>
 
       {infoOpen && (
-        // <InfoModalTemoButton
-        //   title="Coming Soon"
-        //   message="This section is under development."
-        //   onOkPress={() => setInfoOpen(false)}
-        // />
+        <InfoModalTemoButton
+          title="Coming Soon"
+          message="This section is under development."
+          onOkPress={() => setInfoOpen(false)}
+        />
       )}
     </>
   );
