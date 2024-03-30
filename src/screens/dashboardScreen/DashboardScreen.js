@@ -31,17 +31,17 @@ const DashboardScreen = () => {
             <QuickEntries onPress={openInfo} />
             <WeigthMonitoring onPress={openInfo} />
             <VetTips />
-            {/*  <Discover onPress={openInfo} /> */}
+            <Discover onPress={openInfo} />
           </View>
         </ScrollView>
       </View>
 
       {infoOpen && (
-        <InfoModalTemoButton
-          title="Coming Soon"
-          message="This section is under development."
-          onOkPress={() => setInfoOpen(false)}
-        />
+        // <InfoModalTemoButton
+        //   title="Coming Soon"
+        //   message="This section is under development."
+        //   onOkPress={() => setInfoOpen(false)}
+        // />
       )}
     </>
   );
