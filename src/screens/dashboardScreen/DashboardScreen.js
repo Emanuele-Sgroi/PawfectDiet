@@ -27,8 +27,8 @@ const DashboardScreen = () => {
         <TopNav isInfoOpen={infoOpen} onPress={openInfo} />
         <ScrollView style={styles.scrollContainer}>
           <View style={styles.contentContainer}>
-            {/* <CaloriesSummary />
-            <QuickEntries onPress={openInfo} />
+            <CaloriesSummary />
+            {/* <QuickEntries onPress={openInfo} />
             <WeigthMonitoring onPress={openInfo} />
             <VetTips />
             <Discover onPress={openInfo} /> */}
