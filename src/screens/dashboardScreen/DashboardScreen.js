@@ -30,8 +30,8 @@ const DashboardScreen = () => {
             <CaloriesSummary />
             <QuickEntries onPress={openInfo} />
             <WeigthMonitoring onPress={openInfo} />
-            {/* <VetTips />
-            <Discover onPress={openInfo} /> */}
+            <VetTips />
+            {/*  <Discover onPress={openInfo} /> */}
           </View>
         </ScrollView>
       </View>
