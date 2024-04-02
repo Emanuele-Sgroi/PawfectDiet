@@ -1,58 +1,61 @@
-import React, { useState } from "react";
+/*
+  LoggingOutModal
+  ---------------
+  Tiny confirm‑dialog that fades over the whole screen and asks “Yes / No”.
+  Still just two callbacks – wire them to whatever you need.
+*/
+
+import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 
-const LoggingOutModal = ({ title, onYesPress, onNoPress }) => {
-  return (
-    <>
-      <View style={styles.container}>
-        <View style={styles.logOutModal}>
-          <Text style={styles.h1}>{title}</Text>
-          <View style={styles.buttonsContainer}>
-            <TouchableOpacity onPress={onNoPress} style={styles.button}>
-              <Text style={styles.buttonText}>No</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={onYesPress} style={styles.button}>
-              <Text style={styles.buttonText}>Yes</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
-    </>
-  );
-};
+const LoggingOutModal = ({ title, onYesPress, onNoPress }) => (
+  <View style={styles.container}>
+    <View style={styles.logOutModal}>
+      <Text style={styles.h1}>{title}</Text>
 
+      <View style={styles.buttonsContainer}>
+        <TouchableOpacity style={styles.button} onPress={onNoPress}>
+          <Text style={styles.buttonText}>No</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.button} onPress={onYesPress}>
+          <Text style={styles.buttonText}>Yes</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  </View>
+);
+
+// styles kept intact ↓
 const styles = StyleSheet.create({
   container: {
     backgroundColor: "#00000040",
-    height: "100%",
-    width: "100%",
-    paddingVertical: 20,
-    paddingHorizontal: 30,
     position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     justifyContent: "center",
     alignItems: "center",
     zIndex: 800,
+    paddingHorizontal: 30,
+    paddingVertical: 20,
   },
   logOutModal: {
-    padding: 20,
-    zIndex: 901,
     backgroundColor: "#181C39",
+    padding: 20,
     borderRadius: 15,
-    justifyContent: "center",
     alignItems: "center",
-    flexDirection: "column",
   },
   buttonsContainer: {
     flexDirection: "row",
-    justifyContent: "center",
     alignItems: "center",
+    justifyContent: "center",
     gap: 30,
   },
   h1: {
-    zIndex: 902,
-    color: "#fff",
-    fontFamily: "MerriweatherSans-Bold",
     fontSize: 18,
+    fontFamily: "MerriweatherSans-Bold",
+    color: "#FFFFFF",
     marginBottom: 20,
   },
   button: {
@@ -60,13 +63,10 @@ const styles = StyleSheet.create({
     height: 50,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#fff",
+    backgroundColor: "#FFFFFF",
     borderRadius: 2,
   },
-  buttonText: {
-    fontFamily: "MerriweatherSans-Bold",
-    color: "#181C39",
-  },
+  buttonText: { fontFamily: "MerriweatherSans-Bold", color: "#181C39" },
 });
 
-export default LoggingOutModal;
+export default React.memo(LoggingOutModal);
