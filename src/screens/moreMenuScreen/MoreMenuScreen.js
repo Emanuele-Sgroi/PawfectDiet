@@ -185,6 +185,7 @@ const MoreMenuScreen = ({ navigation }) => {
   );
 };
 
+// styles unchanged ↓
 const styles = StyleSheet.create({
   scrollContainer: {
     backgroundColor: "#E6ECFC",
