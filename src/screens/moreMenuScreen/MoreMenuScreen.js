@@ -194,24 +194,18 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    justifyContent: "flex-start",
     alignItems: "flex-start",
     width: "100%",
     paddingBottom: 15,
   },
   linkContainer: {
     flexDirection: "row",
-    justifyContent: "center",
     alignItems: "center",
     marginBottom: 7,
     paddingRight: 20,
     paddingLeft: 45,
   },
-  icon: {
-    width: 25,
-    height: 25,
-    marginEnd: 10,
-  },
+  icon: { width: 25, height: 25, marginEnd: 10 },
   linkText: {
     fontFamily: "MerriweatherSans-Bold",
     fontSize: 20,
