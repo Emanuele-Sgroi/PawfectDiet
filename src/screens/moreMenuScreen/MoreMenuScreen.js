@@ -174,7 +174,6 @@ const MoreMenuScreen = ({ navigation }) => {
           onOkPress={() => setIsInfoOpen(false)}
         />
       )}
-
       {isLoggingOut && (
         <LoggingOutModal
           title="Are you sure?"
