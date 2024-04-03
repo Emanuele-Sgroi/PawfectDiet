@@ -1,245 +1,166 @@
+/*
+  MoreMenuScreen
+  --------------
+  Hamburger‑style menu: shows active dog header, then a list of nav links,
+  plus account/dog profile actions and a logout confirmation modal.
+
+  Static links have been moved into an array so the JSX stays tidy.
+*/
+
 import React, { useState, useCallback } from "react";
 import {
   View,
   Text,
   StyleSheet,
-  TouchableOpacity,
   Image,
+  TouchableOpacity,
   ScrollView,
 } from "react-native";
-import { images } from "../../constants/index";
+import { CommonActions, useFocusEffect } from "@react-navigation/native";
 import * as SecureStore from "expo-secure-store";
 import { doc, getDoc } from "firebase/firestore";
 import { signOut } from "firebase/auth";
+import Toast from "react-native-toast-message";
+
+import { images } from "../../constants";
 import { db, auth } from "../../../firebaseConfig";
 import {
   InfoModalTemoButton,
   ButtonLarge,
   LoggingOutModal,
-} from "../../components/index";
-import Toast from "react-native-toast-message";
-import { CommonActions, useFocusEffect } from "@react-navigation/native";
+} from "../../components";
+
+const NAV_LINKS = [
+  { icon: images.dashboard_black, label: "Dashboard", screen: "Dashboard" },
+  {
+    icon: images.feed_log_black,
+    label: "Feed Log",
+    screen: "Feed Log",
+    params: { refresh: true },
+  },
+  { icon: images.vet_care_black, label: "Vet Care", screen: "Vet Care" },
+  { icon: images.saved_food_black, label: "Saved Food", screen: "Saved Food" },
+  { icon: images.flag_black, label: "Health Goals", screen: "HealthGoals" },
+  // divider
+  { icon: images.user_black, label: "Account", soon: true },
+  { icon: images.dog_profile_black, label: "Dog Profile", soon: true },
+  {
+    icon: images.switch_dog_black,
+    label: "Switch Dog Profile",
+    screen: "SwitchDog",
+    params: { refresh: true },
+  },
+  { icon: images.reminder_black, label: "Reminders", soon: true },
+  { icon: images.notification_black, label: "Notification", soon: true },
+  // divider
+  { icon: images.privacy_black, label: "Privacy Center", soon: true },
+  { icon: images.question_black, label: "Help", soon: true },
+  { icon: images.settings_black, label: "Settings", soon: true },
+];
+
+const defaultPic =
+  images.default_profile_picture ??
+  "https://firebasestorage.googleapis.com/v0/b/pawfect-diet.appspot.com/o/General%2Fdefault_profile_picture.png?alt=media&token=0d78caf4-f675-41b1-b8d4-a8c0e5a6a083";
 
 const MoreMenuScreen = ({ navigation }) => {
   const [dogProfile, setDogProfile] = useState({
     name: "",
-    photoUrl:
-      "https://firebasestorage.googleapis.com/v0/b/pawfect-diet.appspot.com/o/General%2Fdefault_profile_picture.png?alt=media&token=0d78caf4-f675-41b1-b8d4-a8c0e5a6a083",
+    photoUrl: defaultPic,
     tag: "",
   });
   const [isInfoOpen, setIsInfoOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
+  // fetch active dog on focus
   useFocusEffect(
     useCallback(() => {
-      async function fetchActiveDogProfile() {
-        const userId = await SecureStore.getItemAsync("userId");
-        const activeDogName = await SecureStore.getItemAsync(
-          "activeDogProfile"
-        );
-
+      (async () => {
         try {
-          if (userId && activeDogName) {
-            const dogRef = doc(db, `users/${userId}/dogs`, activeDogName);
-            const dogDoc = await getDoc(dogRef);
-
-            if (dogDoc.exists()) {
-              const dogData = dogDoc.data();
-              setDogProfile({
-                name: dogData.dogName,
-                photoUrl: dogData.profilePicture,
-                tag: dogData.tagLine,
-              });
-            } else {
-              console.log("No such dog profile!");
-            }
+          const uid = await SecureStore.getItemAsync("userId");
+          const dogName = await SecureStore.getItemAsync("activeDogProfile");
+          if (!uid || !dogName) return;
+          const snap = await getDoc(doc(db, `users/${uid}/dogs/${dogName}`));
+          if (snap.exists()) {
+            const d = snap.data();
+            setDogProfile({
+              name: d.dogName,
+              photoUrl: d.profilePicture,
+              tag: d.tagLine,
+            });
           }
-        } catch (error) {
-          console.log(error);
+        } catch (e) {
+          console.warn(e);
         }
-      }
-
-      fetchActiveDogProfile();
+      })();
     }, [])
   );
 
-  const profilePadding =
-    dogProfile.photoUrl ===
-    "https://firebasestorage.googleapis.com/v0/b/pawfect-diet.appspot.com/o/General%2Fdefault_profile_picture.png?alt=media&token=0d78caf4-f675-41b1-b8d4-a8c0e5a6a083"
-      ? 10
-      : 0;
+  const profilePadding = dogProfile.photoUrl === defaultPic ? 10 : 0;
+
+  // ─── actions ────────────────────────────────────────────────
+  const toast = (type, msg) => Toast.show({ type, text1: msg });
 
   const handleLogout = async () => {
     try {
       await signOut(auth);
-
       await SecureStore.deleteItemAsync("userId");
       await SecureStore.deleteItemAsync("activeDogProfile");
-
-      onToastSuccess("You have been logged out");
-
+      toast("success", "You have been logged out");
       setIsLoggingOut(false);
-      navigation.navigate("Login");
-    } catch (error) {
-      console.error("Logout failed:", error);
-      onToastError("Failed to log out");
+      navigation.dispatch(
+        CommonActions.reset({ index: 0, routes: [{ name: "Login" }] })
+      );
+    } catch (e) {
+      console.error(e);
+      toast("error", "Failed to log out");
       setIsLoggingOut(false);
     }
   };
 
-  const onToastError = (message) => {
-    Toast.show({
-      type: "error",
-      text1: message,
-    });
-  };
+  const openSoon = () => setIsInfoOpen(true);
 
-  const onToastSuccess = (message) => {
-    Toast.show({
-      type: "success",
-      text1: message,
-    });
-  };
-
+  // ─── render ────────────────────────────────────────────────
   return (
     <>
       <ScrollView style={styles.scrollContainer}>
         <View style={styles.container}>
+          {/* Active dog header */}
           <View style={styles.activeDogContainer}>
             <View style={[styles.imgContainer, { padding: profilePadding }]}>
+              {" "}
               <Image
                 style={styles.profilePicture}
                 source={{ uri: dogProfile.photoUrl }}
-              />
+              />{" "}
             </View>
-            <View style={styles.verticalLine}></View>
+            <View style={styles.verticalLine} />
             <View style={styles.dogTextContainer}>
               <Text style={styles.dogName}>{dogProfile.name}</Text>
               <Text style={styles.dogTag}>{dogProfile.tag}</Text>
             </View>
           </View>
 
-          <TouchableOpacity
-            style={styles.linkContainer}
-            onPress={() => {
-              navigation.navigate("Dashboard");
-            }}
-          >
-            <Image source={images.dashboard_black} style={styles.icon} />
-            <Text style={styles.linkText}>Dashboard</Text>
-          </TouchableOpacity>
+          {/* Nav links */}
+          {NAV_LINKS.map(({ icon, label, screen, params, soon }, i) => (
+            <React.Fragment key={label}>
+              {i === 5 || i === 10 ? <View style={styles.linkLine} /> : null}
+              <TouchableOpacity
+                style={styles.linkContainer}
+                onPress={
+                  soon ? openSoon : () => navigation.navigate(screen, params)
+                }
+              >
+                <Image source={icon} style={styles.icon} />
+                <Text style={styles.linkText}>{label}</Text>
+              </TouchableOpacity>
+            </React.Fragment>
+          ))}
 
-          <TouchableOpacity
-            style={styles.linkContainer}
-            onPress={() => {
-              navigation.navigate("Feed Log", { refresh: true });
-            }}
-          >
-            <Image source={images.feed_log_black} style={styles.icon} />
-            <Text style={styles.linkText}>Feed Log</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.linkContainer}
-            onPress={() => {
-              navigation.navigate("Vet Care");
-            }}
-          >
-            <Image source={images.vet_care_black} style={styles.icon} />
-            <Text style={styles.linkText}>Vet Care</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.linkContainer}
-            onPress={() => {
-              navigation.navigate("Saved Food");
-            }}
-          >
-            <Image source={images.saved_food_black} style={styles.icon} />
-            <Text style={styles.linkText}>Saved Food</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.linkContainer}
-            onPress={() => {
-              navigation.navigate("HealthGoals");
-            }}
-          >
-            <Image source={images.flag_black} style={styles.icon} />
-            <Text style={styles.linkText}>Health Goals</Text>
-          </TouchableOpacity>
-
-          <View style={styles.linkLine}></View>
-
-          <TouchableOpacity
-            style={styles.linkContainer}
-            onPress={() => setIsInfoOpen(true)}
-          >
-            <Image source={images.user_black} style={styles.icon} />
-            <Text style={styles.linkText}>Account</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.linkContainer}
-            onPress={() => setIsInfoOpen(true)}
-          >
-            <Image source={images.dog_profile_black} style={styles.icon} />
-            <Text style={styles.linkText}>Dog Profile</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.linkContainer}
-            onPress={() => navigation.navigate("SwitchDog", { refresh: true })}
-          >
-            <Image source={images.switch_dog_black} style={styles.icon} />
-            <Text style={styles.linkText}>Switch Dog Profile</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.linkContainer}
-            onPress={() => setIsInfoOpen(true)}
-          >
-            <Image source={images.reminder_black} style={styles.icon} />
-            <Text style={styles.linkText}>Reminders</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.linkContainer}
-            onPress={() => setIsInfoOpen(true)}
-          >
-            <Image source={images.notification_black} style={styles.icon} />
-            <Text style={styles.linkText}>Notification</Text>
-          </TouchableOpacity>
-
-          <View style={styles.linkLine}></View>
-
-          <TouchableOpacity
-            style={styles.linkContainer}
-            onPress={() => setIsInfoOpen(true)}
-          >
-            <Image source={images.privacy_black} style={styles.icon} />
-            <Text style={styles.linkText}>Privacy Center</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.linkContainer}
-            onPress={() => setIsInfoOpen(true)}
-          >
-            <Image source={images.question_black} style={styles.icon} />
-            <Text style={styles.linkText}>Help</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.linkContainer}
-            onPress={() => setIsInfoOpen(true)}
-          >
-            <Image source={images.settings_black} style={styles.icon} />
-            <Text style={styles.linkText}>Settings</Text>
-          </TouchableOpacity>
+          {/* Logout button */}
           <View style={{ width: "90%", alignSelf: "center" }}>
             <ButtonLarge
-              isThereArrow={true}
               buttonName="LOG OUT"
+              isThereArrow={true}
               onPress={() => setIsLoggingOut(true)}
             />
           </View>
