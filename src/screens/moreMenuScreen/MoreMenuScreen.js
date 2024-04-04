@@ -225,7 +225,6 @@ const styles = StyleSheet.create({
     paddingVertical: 30,
     paddingHorizontal: 20,
     flexDirection: "row",
-    justifyContent: "flex-start",
     alignItems: "center",
     marginBottom: 20,
   },
@@ -234,42 +233,31 @@ const styles = StyleSheet.create({
     height: 65,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#fff",
+    backgroundColor: "#FFFFFF",
     borderRadius: 32.5,
     overflow: "hidden",
     marginTop: 20,
   },
-  profilePicture: {
-    width: "100%",
-    height: "100%",
-    borderRadius: 32.5,
-    resizeMode: "cover",
-  },
+  profilePicture: { width: "100%", height: "100%", borderRadius: 32.5 },
   verticalLine: {
-    height: "100%",
     width: 2,
-    backgroundColor: "#fff",
-    borderRadius: 20,
+    height: "100%",
+    backgroundColor: "#FFFFFF",
     marginHorizontal: 15,
     marginTop: 20,
   },
-  dogTextContainer: {
-    flexDirection: "column",
-    alignItems: "flex-start",
-    justifyContent: "center",
-    marginTop: 20,
-  },
+  dogTextContainer: { alignItems: "flex-start", marginTop: 20 },
   dogName: {
     fontFamily: "MerriweatherSans-Bold",
     fontSize: 20,
-    color: "#fff",
+    color: "#FFFFFF",
   },
   dogTag: {
     fontFamily: "MerriweatherSans-Regular",
     fontSize: 13,
-    color: "#fff",
+    color: "#FFFFFF",
     opacity: 0.7,
   },
 });
 
-export default MoreMenuScreen;
+export default React.memo(MoreMenuScreen);
