@@ -217,6 +217,7 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: "#000000",
     marginBottom: 7,
+    alignSelf: "center",
   },
   activeDogContainer: {
     width: "100%",
