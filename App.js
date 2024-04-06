@@ -68,7 +68,7 @@ export default function App() {
             if (route.name === "Dashboard") {
               imageSource = focused ? images.dashboard : images.dashboard_un;
             } else if (route.name === "Feed Log") {
-            //   imageSource = focused ? images.feed_log : images.feed_log_un;
+               imageSource = focused ? images.feed_log : images.feed_log_un;
             // } else if (route.name === "Vet Care") {
             //   imageSource = focused ? images.vet_care : images.vet_care_un;
             // } else if (route.name === "Saved Food") {
