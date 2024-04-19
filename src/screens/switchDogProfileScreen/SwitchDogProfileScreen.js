@@ -182,7 +182,7 @@ const styles = StyleSheet.create({
   scrollDogSelectionContainer: {
     width: "100%",
     height: 390,
-    backgroundColor: "#fff",
+    backgroundColor: "#FFFFFF",
     padding: 15,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
