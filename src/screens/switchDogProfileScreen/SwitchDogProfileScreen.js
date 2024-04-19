@@ -137,19 +137,9 @@ const SwitchDogProfileScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  ScrollContainer: {
-    backgroundColor: "#E6ECFC",
-    width: "100%",
-  },
-  contentContainer: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  parkContainer: {
-    width: "100%",
-    height: 200,
-  },
+  ScrollContainer: { backgroundColor: "#E6ECFC", width: "100%" },
+  contentContainer: { flex: 1, alignItems: "center" },
+  parkContainer: { width: "100%", height: 200 },
   dogImg: {
     width: 80,
     height: 100,
