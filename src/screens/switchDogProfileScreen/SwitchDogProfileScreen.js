@@ -1,13 +1,12 @@
+/*
+  SwitchDogProfileScreen
+  ----------------------
+  Lets the user pick an existing dog or jump into the profile‑creation flow.
+  Most logic kept the same – just de‑cluttered a few bits and fixed the
+  profilePadding bug (was reading from an array).
+*/
+
 import React, { useState, useCallback } from "react";
-import { collection, getDocs } from "firebase/firestore";
-import { signOut } from "firebase/auth";
-import { db, auth } from "../../../firebaseConfig";
-import * as SecureStore from "expo-secure-store";
-import {
-  useNavigation,
-  useRoute,
-  useFocusEffect,
-} from "@react-navigation/native";
 import {
   View,
   Text,
