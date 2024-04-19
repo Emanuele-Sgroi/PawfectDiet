@@ -124,9 +124,10 @@ const SwitchDogProfileScreen = ({ navigation }) => {
               })}
             </View>
           </ScrollView>
+
           <ButtonLarge
-            isThereArrow={false}
             buttonName="Add a new companion"
+            isThereArrow={false}
             onPress={handleAddNewDog}
           />
         </View>
