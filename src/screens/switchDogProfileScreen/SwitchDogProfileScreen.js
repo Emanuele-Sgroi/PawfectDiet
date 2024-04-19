@@ -89,30 +89,32 @@ const SwitchDogProfileScreen = ({ navigation }) => {
             <Icon name="caret-back-sharp" size={32} color="#181C39" />
           </TouchableOpacity>
         </ImageBackground>
+
+        {/* List of profiles */}
         <View style={styles.bottomContentContainer}>
           <Text style={styles.h1}>Select Your Paw Partner</Text>
-          <View style={styles.line}></View>
+          <View style={styles.line} />
+
           <ScrollView style={styles.scrollDogSelectionContainer}>
             <View style={styles.dogSelectionContainer}>
-              {dogs.map((dog, index) => {
+              {dogs.map((dog) => {
+                const pad = dog.profilePicture === DEFAULT_PIC ? 10 : 0;
                 return (
                   <TouchableOpacity
-                    key={index}
+                    key={dog.id}
                     style={styles.previewActual}
                     onPress={() => handleDogSelection(dog.dogName)}
                   >
                     <View
-                      style={[
-                        styles.previewImgContainer,
-                        { padding: profilePaddingPreview },
-                      ]}
+                      style={[styles.previewImgContainer, { padding: pad }]}
                     >
+                      {" "}
                       <Image
                         style={styles.previewProfilePicture}
                         source={{ uri: dog.profilePicture }}
-                      />
+                      />{" "}
                     </View>
-                    <View style={styles.previewLine}></View>
+                    <View style={styles.previewLine} />
                     <View style={styles.previewTextContainer}>
                       <Text style={styles.previewName}>{dog.dogName}</Text>
                       <Text style={styles.previewTag}>{dog.tagLine}</Text>
