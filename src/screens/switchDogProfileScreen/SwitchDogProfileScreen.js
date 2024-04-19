@@ -16,14 +16,51 @@ import {
   ImageBackground,
   TouchableOpacity,
 } from "react-native";
-import { images } from "../../constants/index";
-import { ButtonLarge } from "../../components/index";
-import Toast from "react-native-toast-message";
+import { useRoute, useFocusEffect } from "@react-navigation/native";
+import { collection, getDocs } from "firebase/firestore";
+import { signOut } from "firebase/auth";
+import * as SecureStore from "expo-secure-store";
 import Icon from "react-native-vector-icons/Ionicons";
+import Toast from "react-native-toast-message";
+
+import { images } from "../../constants";
+import { db, auth } from "../../../firebaseConfig";
+import { ButtonLarge } from "../../components";
+
+const DEFAULT_PIC =
+  images.default_profile_picture ??
+  "https://firebasestorage.googleapis.com/v0/b/pawfect-diet.appspot.com/o/General%2Fdefault_profile_picture.png?alt=media&token=0d78caf4-f675-41b1-b8d4-a8c0e5a6a083";
 
 const SwitchDogProfileScreen = ({ navigation }) => {
   const [dogs, setDogs] = useState([]);
   const route = useRoute();
+
+  // ─── fetch dogs on focus ───────────────────────────────────
+  useFocusEffect(
+    useCallback(() => {
+      (async () => {
+        try {
+          const uid = await SecureStore.getItemAsync("userId");
+          if (!uid) return;
+          const snap = await getDocs(collection(db, `users/${uid}/dogs`));
+          setDogs(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+        } catch (e) {
+          console.warn("Error fetching dogs:", e);
+        }
+      })();
+    }, [])
+  );
+
+  // ─── handlers ──────────────────────────────────────────────
+  const toast = (msg) => Toast.show({ type: "success", text1: msg });
+
+  const handleDogSelection = async (name) => {
+    await SecureStore.setItemAsync("activeDogProfile", name);
+    toast(`All right! Let's give ${name} the best diet!`);
+    navigation.navigate("Main", { refresh: true });
+  };
+
+  const handleAddNewDog = () => navigation.navigate("DogProfileCreation");
 
   const handleBackPress = async () => {
     if (route.params?.cameFromLogin || route.params?.cameFromSignup) {
@@ -32,68 +69,19 @@ const SwitchDogProfileScreen = ({ navigation }) => {
         await SecureStore.deleteItemAsync("userId");
         await SecureStore.deleteItemAsync("activeDogProfile");
         navigation.replace("Login");
-      } catch (error) {
-        console.error("Error signing out: ", error);
+      } catch (e) {
+        console.error(e);
       }
     } else {
-      if (!navigation.canGoBack()) {
-        navigation.replace("Main");
-      } else {
-        navigation.goBack();
-      }
+      navigation.canGoBack() ? navigation.goBack() : navigation.replace("Main");
     }
   };
 
-  useFocusEffect(
-    useCallback(() => {
-      const fetchDogs = async () => {
-        const userId = await SecureStore.getItemAsync("userId");
-        if (userId) {
-          const dogsRef = collection(db, `users/${userId}/dogs`);
-          try {
-            const snapshot = await getDocs(dogsRef);
-            const dogsArray = snapshot.docs.map((doc) => ({
-              id: doc.id,
-              ...doc.data(),
-            }));
-            setDogs(dogsArray);
-          } catch (error) {
-            console.log("Error fetching dogs:", error);
-          }
-        }
-      };
-
-      fetchDogs();
-    }, [])
-  );
-
-  const profilePaddingPreview =
-    dogs.profilePicture ===
-    "https://firebasestorage.googleapis.com/v0/b/pawfect-diet.appspot.com/o/General%2Fdefault_profile_picture.png?alt=media&token=0d78caf4-f675-41b1-b8d4-a8c0e5a6a083"
-      ? 10
-      : 0;
-
-  const handleDogSelection = async (dog) => {
-    await SecureStore.setItemAsync("activeDogProfile", dog);
-    onToastSuccess(`All Rigth!!!`, `Let's give ${dog} the best diet!`);
-    navigation.navigate("Main", { refresh: true });
-  };
-
-  const handleAddNewDog = () => {
-    navigation.navigate("DogProfileCreation");
-  };
-
-  const onToastSuccess = (title, message) => {
-    Toast.show({
-      type: "success",
-      text1: title,
-      text2: message,
-    });
-  };
-
+  // ─── render ────────────────────────────────────────────────
   return (
     <ScrollView style={styles.ScrollContainer}>
       <View style={styles.contentContainer}>
+        {/* Top banner */}
         <ImageBackground source={images.park} style={styles.parkContainer}>
           <Image source={images.dog_sit} style={styles.dogImg} />
           <Image source={images.logo_icon} style={styles.logoImg} />
