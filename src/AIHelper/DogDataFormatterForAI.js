@@ -1,4 +1,4 @@
-//The following functions were used for testing purposes only.
+//The following functions were used for testing purposes only
 //Functions not fired in production
 
 export const generateHealthGoals = (profileData) => {
