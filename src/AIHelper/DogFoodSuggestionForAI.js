@@ -1,3 +1,11 @@
+/**
+ * Build a prompt for OpenAI that asks the model to create a daily meal &
+ * activity plan for a dog, taking into account health‑goal macros and the
+ * foods/activities we have on hand.
+ *
+ * • We return **one big string** for chat‑completion requests.
+ * • Feed‑log argument kept for future tweaks (protein already consumed etc.).
+ */
 import {
   dogCommercialFoodData,
   dogTreatsData,
