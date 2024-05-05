@@ -1,3 +1,13 @@
+/**
+ * AIFailsModal
+ * -------------
+ * Re‑usable full‑screen alert shown when an AI request fails.
+ * Props
+ *  • visible (boolean)   – controls visibility
+ *  • message (string)    – error text to display
+ *  • onClose (function)  – callback fired when user taps OK
+ */
+
 import React, { useState } from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 

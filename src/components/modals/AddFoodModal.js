@@ -1,3 +1,17 @@
+/**
+ * AddFoodModal
+ * ------------
+ * Lets the user pick a commercial or homemade food and specify the serving
+ * size (grams).  Calories are calculated on‑the‑fly from the local nutrition
+ * database. When the user taps **Add Food** we bubble the object back up
+ * through `onAddFood`.
+ *
+ * Props
+ * ▸ visible      boolean   – show / hide modal
+ * ▸ onClose      function  – called when user dismisses the modal
+ * ▸ onAddFood    function  – ( foodObject, quantityGrams ) ⇒ void
+ */
+
 import React, { useState } from "react";
 import {
   Modal,
