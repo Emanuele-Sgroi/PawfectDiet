@@ -1,4 +1,8 @@
-import React, { useEffect, useState, useCallback } from "react";
+// FeedLogScreen
+
+// This is the screen where the dog owner can log the daily food
+
+import React, { useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -12,9 +16,9 @@ import {
 import { format, subDays, addDays, isSameDay } from "date-fns";
 import { images } from "../../constants/index";
 import Entypo from "react-native-vector-icons/Entypo";
-import AntDesign from "react-native-vector-icons/AntDesign"; // questioncircleo - star
+import AntDesign from "react-native-vector-icons/AntDesign"; // questioncircle - star
 import FontAwesome from "react-native-vector-icons/FontAwesome"; // remove
-import Foundation from "react-native-vector-icons/FontAwesome"; // refresh
+
 import { db } from "../../../firebaseConfig";
 import {
   collection,
@@ -30,7 +34,7 @@ import {
   arrayUnion,
 } from "firebase/firestore";
 import * as SecureStore from "expo-secure-store";
-import { useNavigation, useFocusEffect } from "@react-navigation/native";
+import { useFocusEffect } from "@react-navigation/native";
 import {
   ButtonLarge,
   BasicLoadingModal,
