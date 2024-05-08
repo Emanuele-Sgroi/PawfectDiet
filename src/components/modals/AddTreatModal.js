@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Modal,
   View,
@@ -7,295 +7,234 @@ import {
   FlatList,
   TouchableOpacity,
   StyleSheet,
-  Image,
 } from "react-native";
-import { dogTreatsData } from "../../../dogFoodData";
-import { images } from "../../constants/index";
+import * as SecureStore from "expo-secure-store";
+import { db } from "../../../firebaseConfig";
+import { doc, getDoc } from "firebase/firestore";
 
-const combinedFoodData = [...dogTreatsData];
+/**
+ * List of activities shown to the user. If you need to add/remove activities,
+ * simply edit the array – no other code needs to change.
+ */
+const EXERCISES = [
+  "Walking",
+  "Running",
+  "Fetch",
+  "Swimming",
+  "Agility Training",
+  "Ball Games",
+  "Frisbee",
+  "Hiking",
+  "Hide and Seek",
+  "Obstacle Course",
+];
 
-const AddTreatModal = ({ visible, onClose, onAddFood }) => {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedFood, setSelectedFood] = useState(null);
-  const [quantity, setQuantity] = useState("");
-  const [selectedItemId, setSelectedItemId] = useState(null);
-  const [showInfo, setShowInfo] = useState(false);
+/**
+ * Metabolic‑equivalent (MET) values used to estimate caloric burn.
+ * Source: comparative canine‑exercise studies.
+ */
+const MET_VALUES = {
+  Walking: 3,
+  Running: 8,
+  Fetch: 4,
+  Swimming: 10,
+  "Agility Training": 5,
+  "Ball Games": 4,
+  Frisbee: 4,
+  Hiking: 7,
+  "Hide and Seek": 3,
+  "Obstacle Course": 5,
+};
 
-  const filteredData =
-    searchQuery.length > 0
-      ? combinedFoodData.filter(
-          (item) =>
-            item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            item.brand.toLowerCase().includes(searchQuery.toLowerCase())
-        )
-      : combinedFoodData;
+const AddActivityModal = ({ visible, onClose, onAddActivity }) => {
+  const [dogWeightKg, setDogWeightKg] = useState(null);
+  const [query, setQuery] = useState("");
+  const [selectedActivity, setSelectedActivity] = useState(null);
+  const [durationMin, setDurationMin] = useState("");
+  const [calories, setCalories] = useState(null);
 
-  const handleSelectFood = (food) => {
-    setSelectedFood(food);
-    setQuantity(""); // Reset quantity when a new food is selected
-    setSelectedItemId(food.name);
+  /** Fetch the active dog's weight once when the modal mounts */
+  useEffect(() => {
+    const fetchDogWeight = async () => {
+      try {
+        const userId = await SecureStore.getItemAsync("userId");
+        const activeDog = await SecureStore.getItemAsync("activeDogProfile");
+        if (!userId || !activeDog) return;
+
+        const snap = await getDoc(doc(db, `users/${userId}/dogs/${activeDog}`));
+        if (snap.exists()) setDogWeightKg(Number(snap.data().dogWeight));
+      } catch (err) {
+        console.error("Failed to fetch dog info", err);
+      }
+    };
+
+    fetchDogWeight();
+  }, []);
+
+  /*** -------- Handlers -------------------------------------------------- */
+  const handleSelect = (activity) => {
+    setSelectedActivity(activity);
+    setCalories(null);
+    setDurationMin("");
   };
 
   const handleClose = () => {
-    // Reset state on close
-    setSearchQuery("");
-    setSelectedFood(null);
-    setQuantity("");
-    setShowInfo(false);
+    setQuery("");
+    setSelectedActivity(null);
+    setDurationMin("");
+    setCalories(null);
     onClose();
   };
 
+  const handleCalculate = () => {
+    if (!dogWeightKg || !selectedActivity || !durationMin) return;
+    const met = MET_VALUES[selectedActivity] || 0;
+    const hours = Number(durationMin) / 60;
+    const burned = met * dogWeightKg * hours;
+    setCalories(burned);
+  };
+
+  const handleAdd = () => {
+    if (!calories) return;
+    onAddActivity(selectedActivity, Number(durationMin), calories);
+    handleClose();
+  };
+
+  /*** -------- Derived values ------------------------------------------- */
+  const filteredExercises = useMemo(() => {
+    if (!query.trim()) return EXERCISES;
+    return EXERCISES.filter((e) =>
+      e.toLowerCase().includes(query.toLowerCase())
+    );
+  }, [query]);
+
+  /*** -------- UI -------------------------------------------------------- */
   return (
-    <Modal visible={visible} animationType="slide" transparent={true}>
-      <View style={styles.modalView}>
+    <Modal visible={visible} animationType="slide" transparent>
+      <View style={s.wrapper}>
+        {/* Search */}
         <TextInput
-          placeholder="Search for treats..."
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          style={styles.searchBar}
+          placeholder="Search activities…"
+          value={query}
+          onChangeText={setQuery}
+          style={s.search}
         />
-        {showInfo && (
-          <Text style={{ textAlign: "center" }}>
-            This feature is under development. Please select an item from the
-            list below or use the search bar.
-          </Text>
-        )}
-        <View style={styles.toolsContainer}>
-          <TouchableOpacity
-            style={styles.toolBox}
-            onPress={() => setShowInfo(true)}
-          >
-            <Image
-              source={images.barcode_white}
-              style={{ width: 60, height: 60, resizeMode: "contain" }}
-            />
-            <Text style={styles.toolsText}>Scan Item</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.toolBox}
-            onPress={() => setShowInfo(true)}
-          >
-            <Image
-              source={images.manual_input_white}
-              style={{ width: 60, height: 60, resizeMode: "contain" }}
-            />
-            <Text style={styles.toolsText}>Manual Entry</Text>
-          </TouchableOpacity>
-        </View>
+
+        {/* Activity list */}
         <FlatList
-          style={styles.flatList}
-          data={filteredData}
-          keyExtractor={(item, index) => `${item.brand}-${item.name}-${index}`}
+          data={filteredExercises}
+          keyExtractor={(item) => item}
+          style={s.list}
           renderItem={({ item }) => (
             <TouchableOpacity
-              onPress={() => handleSelectFood(item)}
-              style={[
-                styles.itemContainer,
-                selectedFood !== null && item.name === selectedItemId
-                  ? styles.selectedItemContainer
-                  : {},
-              ]}
+              onPress={() => handleSelect(item)}
+              style={[s.row, item === selectedActivity && s.rowSelected]}
             >
               <Text
-                style={[
-                  styles.itemText,
-                  selectedFood !== null && item.name === selectedItemId
-                    ? styles.selectedText
-                    : {},
-                ]}
+                style={[s.rowText, item === selectedActivity && s.rowTextSel]}
               >
-                {item.brand} - {item.name}
+                {item}
               </Text>
             </TouchableOpacity>
           )}
         />
-        {selectedFood && (
+
+        {/* Duration + calorie calc */}
+        {selectedActivity && (
           <>
             <TextInput
-              placeholder="Enter quantity"
-              value={quantity}
-              onChangeText={setQuantity}
+              placeholder="Duration (minutes)"
               keyboardType="numeric"
-              style={styles.quantityInput}
+              value={durationMin}
+              onChangeText={setDurationMin}
+              style={s.input}
             />
-            <View style={styles.caloriesAddContainer}>
-              <Text style={styles.caloriesText}>
-                Calories:{" "}
-                {selectedFood && quantity
-                  ? (
-                      parseFloat(quantity) *
-                      selectedFood.nutritionalInfo.caloriesPerPiece
-                    ).toFixed(0)
-                  : "0"}
-              </Text>
-              <TouchableOpacity
-                style={styles.addButton}
-                onPress={() => {
-                  if (selectedFood && quantity) {
-                    onAddFood(selectedFood, quantity);
-                    handleClose(); // Close modal after adding food
-                  }
-                }}
-              >
-                <Text style={styles.addText}>Add Treat</Text>
+
+            {!calories ? (
+              <TouchableOpacity style={s.btn} onPress={handleCalculate}>
+                <Text style={s.btnText}>Calculate calories</Text>
               </TouchableOpacity>
-            </View>
+            ) : (
+              <>
+                <Text style={s.calories}>≈ {calories.toFixed(0)} kcal</Text>
+                <TouchableOpacity style={s.btn} onPress={handleAdd}>
+                  <Text style={s.btnText}>Add activity</Text>
+                </TouchableOpacity>
+              </>
+            )}
           </>
         )}
-        <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
-          <Text style={styles.closeButtonText}>Close</Text>
+
+        <TouchableOpacity style={[s.btn, s.close]} onPress={handleClose}>
+          <Text style={s.btnText}>Close</Text>
         </TouchableOpacity>
       </View>
     </Modal>
   );
 };
 
-const styles = StyleSheet.create({
-  modalView: {
+const s = StyleSheet.create({
+  wrapper: {
     flex: 1,
     margin: 20,
-    backgroundColor: "white",
+    backgroundColor: "#fff",
     borderRadius: 20,
-    padding: 10,
-    alignItems: "center",
-    shadowColor: "#000",
+    padding: 20,
   },
-  searchBar: {
-    width: "100%",
-    marginBottom: 20,
-    padding: 10,
-    borderColor: "gray",
+  search: {
     borderWidth: 1,
-    borderRadius: 5,
-  },
-  itemContainer: {
-    padding: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: "#eee",
-  },
-  itemText: {
-    fontSize: 16,
-  },
-  quantityInput: {
-    width: "80%",
-    padding: 10,
-    borderColor: "gray",
-    borderWidth: 1,
-    borderRadius: 5,
-    marginTop: 10,
-  },
-  caloriesText: {
-    marginTop: 10,
-    fontSize: 16,
-  },
-  closeButton: {
-    marginTop: 20,
-    backgroundColor: "#273176",
-    padding: 10,
-    borderRadius: 20,
-  },
-  closeButtonText: {
-    color: "white",
-    fontWeight: "bold",
-    textAlign: "center",
-  },
-  quantityInput: {
-    width: "100%",
-    padding: 10,
-    marginVertical: 10,
     borderColor: "#ccc",
+    borderRadius: 6,
+    padding: 10,
+    marginBottom: 10,
+  },
+  list: {
     borderWidth: 1,
-    borderRadius: 5,
+    borderColor: "#ccc",
+    maxHeight: 240,
+    marginBottom: 10,
   },
-  caloriesText: {
-    fontSize: 16,
-    marginVertical: 10,
-  },
-  itemContainer: {
-    paddingVertical: 10,
+  row: {
+    paddingVertical: 12,
     paddingHorizontal: 15,
     borderBottomWidth: 1,
     borderBottomColor: "#eee",
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
   },
-  itemText: {
+  rowSelected: {
+    backgroundColor: "#273176",
+  },
+  rowText: {
     fontSize: 16,
   },
-  searchBar: {
-    width: "100%",
-    padding: 10,
+  rowTextSel: {
+    color: "#fff",
+  },
+  input: {
+    borderWidth: 1,
     borderColor: "#ccc",
-    borderWidth: 1,
-    borderRadius: 5,
+    borderRadius: 6,
+    padding: 10,
     marginBottom: 10,
   },
-  modalView: {
-    marginTop: 50,
-    marginHorizontal: 20,
-    backgroundColor: "white",
-    borderRadius: 20,
-    padding: 35,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
-    maxHeight: "90%",
-  },
-  selectedItemContainer: {
-    backgroundColor: "#273176",
-  },
-  selectedText: {
-    color: "#fff",
-  },
-  flatList: {
-    borderWidth: 1,
-    borderColor: "#7D7D7D",
-  },
-  caloriesAddContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  addButton: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    backgroundColor: "#273176",
-    borderRadius: 20,
-  },
-  addText: {
-    textAlign: "center",
-    fontFamily: "MerriweatherSans-ExtraBold",
-    color: "#fff",
-    marginBottom: 2,
-  },
-  toolsContainer: {
-    width: "100%",
-    padding: 10,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-evenly",
+  calories: {
+    fontSize: 16,
     marginBottom: 10,
   },
-  toolBox: {
-    minWidth: 120,
-    padding: 10,
+  btn: {
     backgroundColor: "#273176",
-    alignItems: "center",
-    justifyContent: "center",
     borderRadius: 20,
+    paddingVertical: 8,
+    paddingHorizontal: 15,
+    alignItems: "center",
+    marginBottom: 10,
   },
-  toolsText: {
-    fontFamily: "MerriweatherSans-ExtraBold",
-    fontSize: 14,
+  btnText: {
     color: "#fff",
-    marginVertical: 4,
+    fontFamily: "MerriweatherSans-Bold",
+  },
+  close: {
+    backgroundColor: "#bb2124",
   },
 });
 
-export default AddTreatModal;
+export default AddActivityModal;
