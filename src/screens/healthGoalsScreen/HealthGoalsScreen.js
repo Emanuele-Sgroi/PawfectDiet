@@ -249,7 +249,6 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     marginVertical: 5,
     flexDirection: "row",
-    alignItems: "center",
     justifyContent: "space-between",
   },
   goalContainer2: {
