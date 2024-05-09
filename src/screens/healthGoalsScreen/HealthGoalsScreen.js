@@ -312,29 +312,17 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#7D7D7D",
   },
-  strongText: {
-    fontFamily: "MerriweatherSans-ExtraBold",
-    fontSize: 14,
-    color: "#7D7D7D",
-  },
+  strongText: { fontFamily: "MerriweatherSans-ExtraBold", fontSize: 14 },
   aiClose: {
-    fontFamily: "MerriweatherSans-Bold",
-    fontSize: 14,
-    color: "red",
     position: "absolute",
     right: 7,
     top: 2,
-  },
-  button: {
-    marginVertical: 15,
-    alignSelf: "center",
-  },
-  h4: {
+    color: "red",
     fontFamily: "MerriweatherSans-Bold",
-    fontSize: 16,
-    color: "#273176",
-    textDecorationLine: "underline",
   },
+
+  /* button */
+  button: { marginVertical: 15, alignSelf: "center" },
 });
 
 export default HealthGoalsScreen;
