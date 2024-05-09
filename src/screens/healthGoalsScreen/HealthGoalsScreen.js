@@ -16,7 +16,12 @@ import {
   TouchableOpacity,
   Image,
 } from "react-native";
+
+// UI components & assets
 import { TitleOnlyNavbar } from "../../components/index";
+import { images } from "../../constants/index";
+
+// Firebase
 import { db } from "../../../firebaseConfig";
 import {
   collection,
