@@ -214,22 +214,34 @@ const HealthGoalsScreen = ({ navigation }) => {
   );
 };
 
+/* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ helper components ~~~~~~~~~~~~~~~~~~~~ */
+const GoalRow = ({ label, value }) => (
+  <View style={styles.goalContainer}>
+    <Text style={styles.h1}>{label}</Text>
+    <Text style={styles.h2}>{value}</Text>
+  </View>
+);
+
+const MacroRow = ({ label, pct, cals, perGram }) => (
+  <View style={styles.goalContainer}>
+    <Text style={styles.h1}>{label}</Text>
+    <Text style={styles.h2}>
+      {pct}%{" "}
+      <Text style={styles.h2_secondary}>
+        ({((cals * pct) / 100 / perGram).toFixed(1)} g)
+      </Text>
+    </Text>
+  </View>
+);
+
+/* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ styles ~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 const styles = StyleSheet.create({
-  scrollContainer: {
-    flex: 1,
-    backgroundColor: "#E6ECFC",
-  },
-  contentContainer: {
-    justifyContent: "center",
-    alignItems: "flex-start",
-  },
-  container: {
-    width: "100%",
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "flex-start",
-    marginTop: 10,
-  },
+  /* layout */
+  scrollContainer: { flex: 1, backgroundColor: "#E6ECFC" },
+  contentContainer: { alignItems: "flex-start" },
+  container: { width: "100%", marginTop: 10 },
+
+  /* goal rows */
   goalContainer: {
     backgroundColor: "#D2DAF0",
     width: "100%",
