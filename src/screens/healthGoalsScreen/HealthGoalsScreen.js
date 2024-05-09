@@ -93,182 +93,116 @@ const HealthGoalsScreen = ({ navigation }) => {
     setShowAiInfo(true);
   };
 
-  //   1 gram of protein = 4 calories
-  // 1 gram of carbohydrates = 4 calories
-  // 1 gram of fat = 9 calories
-
+  /* ---------------------------------------------------------------- render */
   return (
     <ScrollView style={styles.scrollContainer}>
       <View style={styles.contentContainer}>
-        <TitleOnlyNavbar onBackPress={handleBackButton} title="Health Goals" />
-        {healthGoals && dogInfo ? (
-          <>
-            {showAiInfo && (
-              <View style={styles.aiInfoContainer}>
-                <View style={styles.aiContainer}>
-                  <View style={styles.aiTitle}>
-                    <Image source={images.chat} style={styles.aiImg} />
-                    <Text style={styles.aiText}>
-                      Health Goals for {dogInfo.dogName}
-                    </Text>
-                  </View>
-                  {dogInfo.isWorkingDog ? (
-                    <Text style={styles.aiParagraph}>
-                      The health goals for{" "}
-                      <Text style={styles.strongText}>{dogInfo.dogName}</Text>,
-                      a working{" "}
-                      <Text style={styles.strongText}>{dogInfo.breed}</Text>{" "}
-                      aged{" "}
-                      <Text style={styles.strongText}>
-                        {healthGoals.age.age} {healthGoals.age.unit}
-                      </Text>
-                      , have been carefully determined, considering both
-                      breed-specific needs and the active lifestyle typical of
-                      working dogs. These goals are tailored to the health
-                      information you've provided. However, we recommend
-                      consulting your veterinarian to ensure these goals align
-                      perfectly with your dog's unique health requirements.
-                    </Text>
-                  ) : (
-                    <Text style={styles.aiParagraph}>
-                      The health goals for{" "}
-                      <Text style={styles.strongText}>{dogInfo.dogName}</Text>,
-                      a <Text style={styles.strongText}>{dogInfo.breed}</Text>{" "}
-                      aged{" "}
-                      <Text style={styles.strongText}>
-                        {healthGoals.age.age} {healthGoals.age.unit}
-                      </Text>
-                      , have been thoughtfully established, taking into account
-                      the health information you provided. While these goals are
-                      tailored to support your dog's well-being, we recommend
-                      consulting your veterinarian for personalized advice and
-                      confirmation.
-                    </Text>
-                  )}
+        <TitleOnlyNavbar title="Health Goals" onBackPress={handleBackButton} />
 
-                  <Text
-                    onPress={() => {
-                      setShowAiInfo(false);
-                    }}
-                    style={styles.aiClose}
-                  >
-                    X
-                  </Text>
-                </View>
+        {/* ----------------------- AI intro banner ------------------------ */}
+        {healthGoals && dogInfo && showAiInfo && (
+          <View style={styles.aiInfoContainer}>
+            <View style={styles.aiContainer}>
+              {/* header */}
+              <View style={styles.aiTitle}>
+                <Image source={images.chat} style={styles.aiImg} />
+                <Text style={styles.aiText}>
+                  Health Goals for {dogInfo.dogName}
+                </Text>
               </View>
-            )}
-          </>
-        ) : (
-          ""
+
+              {/* dynamic paragraph (working‑dog vs pet) */}
+              <Text style={styles.aiParagraph}>
+                {dogInfo.isWorkingDog
+                  ? `The health goals for `
+                  : `The health goals for `}
+                <Text style={styles.strongText}>{dogInfo.dogName}</Text>, a{" "}
+                {dogInfo.isWorkingDog ? "working " : ""}
+                <Text style={styles.strongText}>{dogInfo.breed}</Text> aged{" "}
+                <Text style={styles.strongText}>
+                  {healthGoals.age.age} {healthGoals.age.unit}
+                </Text>
+                {dogInfo.isWorkingDog
+                  ? ", have been carefully determined, considering both breed‑specific needs and the active lifestyle typical of working dogs. "
+                  : ", have been thoughtfully established. "}
+                We still recommend consulting your veterinarian for a final
+                check‑up and personalised advice.
+              </Text>
+
+              {/* close “X” */}
+              <Text style={styles.aiClose} onPress={() => setShowAiInfo(false)}>
+                X
+              </Text>
+            </View>
+          </View>
         )}
 
+        {/* --------------------- main goal details ------------------------ */}
         <View style={styles.container}>
           {healthGoals && dogInfo ? (
             <>
-              <View style={styles.goalContainer}>
-                <Text style={styles.h1}>Starting Weight:</Text>
-                <Text style={styles.h2}>
-                  {healthGoals.startingWeight} Kg on {startingDate}
-                </Text>
-              </View>
+              {/* weight cards ------------------------------------------------ */}
+              <GoalRow
+                label="Starting Weight:"
+                value={`${healthGoals.startingWeight} Kg on ${startingDate}`}
+              />
+              <GoalRow
+                label="Current Weight:"
+                value={`${parseFloat(healthGoals.currentWeight).toFixed(2)} Kg`}
+              />
+              <GoalRow
+                label="Goal Weight:"
+                value={`${healthGoals.goalWeight} Kg`}
+              />
 
-              <View style={styles.goalContainer}>
-                <Text style={styles.h1}>Current Weight:</Text>
-                <Text style={styles.h2}>
-                  {parseFloat(healthGoals.currentWeight).toFixed(2)} Kg
-                </Text>
-              </View>
-
-              <View style={styles.goalContainer}>
-                <Text style={styles.h1}>Goal Weight:</Text>
-                <Text style={styles.h2}>{healthGoals.goalWeight} Kg</Text>
-              </View>
-
-              <View style={styles.goalContainer}>
-                <Text style={styles.h1}>Wellness Goal:</Text>
-
-                <Text style={styles.h2}>{healthGoals.overallGoal}</Text>
-              </View>
-
+              {/* overall wellness goal ------------------------------------- */}
+              <GoalRow label="Wellness Goal:" value={healthGoals.overallGoal} />
               <View style={styles.goalContainer2}>
                 <Text style={styles.h3}>
                   {healthGoals.overallGoal === "Maintaining weight"
-                    ? "For weight maintenance, focus on portion control and regular, moderate exercise."
+                    ? "Focus on portion control and regular exercise."
                     : healthGoals.overallGoal === "Losing weight"
-                    ? "We recommend a gradual weight loss of 1% to 2% per week."
-                    : "Aim for a healthy weight gain of 1% to 2% per week."}
-                </Text>
-              </View>
-              <View style={styles.goalContainer}>
-                <Text style={styles.h1}>Daily Calories:</Text>
-                <Text style={styles.h2}>
-                  {healthGoals.dailyCalories} Calories
+                    ? "Aim for a gradual weight loss of 1–2 % per week."
+                    : "Aim for a healthy weight gain of 1–2 % per week."}
                 </Text>
               </View>
 
-              <View style={styles.goalContainer}>
-                <Text style={styles.h1}>Carbohydrates:</Text>
-                <Text style={styles.h2}>
-                  {healthGoals.dailyCarbs}%{" "}
-                  <Text style={styles.h2_secondary}>
-                    {"("}
-                    {(
-                      (healthGoals.dailyCalories * healthGoals.dailyCarbs) /
-                      100 /
-                      4
-                    ).toFixed(1)}
-                    g{")"}
-                  </Text>
-                </Text>
-              </View>
+              {/* calories & macros ----------------------------------------- */}
+              <GoalRow
+                label="Daily Calories:"
+                value={`${healthGoals.dailyCalories} Cal`}
+              />
+              <MacroRow
+                label="Carbohydrates:"
+                pct={healthGoals.dailyCarbs}
+                cals={healthGoals.dailyCalories}
+                perGram={4}
+              />
+              <MacroRow
+                label="Proteins:"
+                pct={healthGoals.dailyProtein}
+                cals={healthGoals.dailyCalories}
+                perGram={4}
+              />
+              <MacroRow
+                label="Fat:"
+                pct={100 - (healthGoals.dailyProtein + healthGoals.dailyCarbs)}
+                cals={healthGoals.dailyCalories}
+                perGram={9}
+              />
 
-              <View style={styles.goalContainer}>
-                <Text style={styles.h1}>Proteins:</Text>
-                <Text style={styles.h2}>
-                  {healthGoals.dailyProtein}%{" "}
-                  <Text style={styles.h2_secondary}>
-                    {"("}
-                    {(
-                      (healthGoals.dailyCalories * healthGoals.dailyProtein) /
-                      100 /
-                      4
-                    ).toFixed(1)}
-                    g{")"}
-                  </Text>
-                </Text>
-              </View>
+              {/* feeding frequency ---------------------------------------- */}
+              <GoalRow
+                label="Meals Per Day:"
+                value={`${healthGoals.mealsPerDay} Meals`}
+              />
 
-              <View style={styles.goalContainer}>
-                <Text style={styles.h1}>Fat:</Text>
-                <Text style={styles.h2}>
-                  {100 - (healthGoals.dailyProtein + healthGoals.dailyCarbs)}%{" "}
-                  <Text style={styles.h2_secondary}>
-                    {"("}
-                    {(
-                      (healthGoals.dailyCalories *
-                        (100 -
-                          (healthGoals.dailyProtein +
-                            healthGoals.dailyCarbs))) /
-                      100 /
-                      9
-                    ).toFixed(1)}
-                    g{")"}
-                  </Text>
-                </Text>
-              </View>
-
-              <View style={styles.goalContainer}>
-                <Text style={styles.h1}>Meals Per Day:</Text>
-                <Text style={styles.h2}>{healthGoals.mealsPerDay} Meals</Text>
-              </View>
-
+              {/* back button ---------------------------------------------- */}
               <TouchableOpacity
                 style={styles.button}
-                onPress={() => {
-                  navigation.navigate("Dashboard");
-                }}
+                onPress={() => navigation.navigate("Dashboard")}
               >
-                <Text style={styles.h4}>Back to DashBoard</Text>
+                <Text style={styles.h4}>Back to Dashboard</Text>
               </TouchableOpacity>
             </>
           ) : (
