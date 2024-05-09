@@ -33,15 +33,18 @@ import {
   limit,
 } from "firebase/firestore";
 import * as SecureStore from "expo-secure-store";
-import { useNavigation, useFocusEffect } from "@react-navigation/native";
-import { images } from "../../constants/index";
+
+// React‑Navigation helpers
+import { useFocusEffect } from "@react-navigation/native";
 
 const HealthGoalsScreen = ({ navigation }) => {
-  const [healthGoals, setHealthGoals] = useState(null);
-  const [dogInfo, setDogInfo] = useState(null);
-  const [startingDate, setStartingDate] = useState("");
-  const [showAiInfo, setShowAiInfo] = useState(true);
+  /* ------------------------------------------------------------------ state */
+  const [healthGoals, setHealthGoals] = useState(null); // latest goals doc
+  const [dogInfo, setDogInfo] = useState(null); // active dog profile
+  const [startingDate, setStartingDate] = useState(""); // first‑goal date
+  const [showAiInfo, setShowAiInfo] = useState(true); // toggle banner
 
+  /* --------------------------------------------------------- data fetching */
   useFocusEffect(
     useCallback(() => {
       const fetchDogInfoAndGoals = async () => {
