@@ -1,3 +1,12 @@
+/**
+ * HealthGoalsScreen
+ * -----------------
+ *  • Fetches the active dog profile and its latest “health‑goals” document
+ *  • Presents weight / calorie targets together with a short AI‑generated intro
+ *  • Allows the user to hide the AI intro banner and navigate back to Dashboard
+ *
+ */
+
 import React, { useState, useCallback } from "react";
 import {
   View,
