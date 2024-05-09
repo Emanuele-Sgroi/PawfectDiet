@@ -52,42 +52,35 @@ const HealthGoalsScreen = ({ navigation }) => {
         const activeDogProfile = await SecureStore.getItemAsync(
           "activeDogProfile"
         );
-        if (!userId || !activeDogProfile) {
-          console.log("User ID or active dog profile missing");
-          return;
-        }
+        if (!userId || !activeDogProfile) return console.log("Missing IDs");
 
+        // 1) active dog profile
         const dogRef = doc(db, `users/${userId}/dogs/${activeDogProfile}`);
         const dogSnap = await getDoc(dogRef);
+        if (!dogSnap.exists()) return console.log("Dog profile not found");
+        setDogInfo(dogSnap.data());
 
-        if (dogSnap.exists()) {
-          setDogInfo(dogSnap.data());
-        } else {
-          console.log("No such document for dog info!");
-          return;
-        }
-
+        // 2) last “healthGoals” doc
         const goalsQuery = query(
           collection(dogRef, "healthGoals"),
           orderBy("createdAt", "desc"),
           limit(1)
         );
         const goalsSnap = await getDocs(goalsQuery);
-        if (!goalsSnap.empty) {
-          const goalsData = goalsSnap.docs[0].data();
-          setHealthGoals(goalsData);
-          if (goalsData.createdAt) {
-            const date = goalsData.createdAt.toDate();
-            setStartingDate(
-              date.toLocaleDateString("en-US", {
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-              })
-            );
-          }
-        } else {
-          console.log("No health goals found");
+        if (goalsSnap.empty) return console.log("No health goals");
+        const goalsData = goalsSnap.docs[0].data();
+        setHealthGoals(goalsData);
+
+        // format starting date (if present)
+        if (goalsData.createdAt) {
+          const dateObj = goalsData.createdAt.toDate();
+          setStartingDate(
+            dateObj.toLocaleDateString("en-US", {
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+            })
+          );
         }
       };
 
