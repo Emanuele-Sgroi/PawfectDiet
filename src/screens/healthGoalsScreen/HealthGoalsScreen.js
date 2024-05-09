@@ -281,35 +281,30 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#7D7D7D",
   },
-  aiInfoContainer: {
-    width: "100%",
-    padding: 20,
+  h4: {
+    fontFamily: "MerriweatherSans-Bold",
+    fontSize: 16,
+    color: "#273176",
+    textDecorationLine: "underline",
   },
+
+  /* AI intro banner */
+  aiInfoContainer: { width: "100%", padding: 20 },
   aiContainer: {
     width: "100%",
     backgroundColor: "#fff",
     padding: 10,
-    shadowColor: "#000000",
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
     shadowRadius: 4,
     elevation: 8,
   },
-  aiTitle: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "flex-start",
-    gap: 10,
-  },
-  aiImg: {
-    width: 30,
-    height: 30,
-    resizeMode: "contain",
-  },
+  aiTitle: { flexDirection: "row", alignItems: "center", gap: 10 },
+  aiImg: { width: 30, height: 30, resizeMode: "contain" },
   aiText: {
     fontFamily: "MerriweatherSans-ExtraBold",
     fontSize: 16,
-    color: "#000000",
     maxWidth: "90%",
   },
   aiParagraph: {
