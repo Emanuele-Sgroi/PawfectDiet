@@ -258,25 +258,13 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     marginTop: -5,
     marginBottom: 2.5,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
   },
-  activityContainer: {
-    backgroundColor: "#D2DAF0",
-    width: "100%",
-    paddingHorizontal: 30,
-    paddingVertical: 5,
-    marginVertical: 5,
-    flexDirection: "column",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
+
+  /* fonts */
   h1: {
     fontFamily: "MerriweatherSans-ExtraBold",
     fontSize: 16,
     color: "#273176",
-    marginEnd: 5,
   },
   h2: {
     fontFamily: "MerriweatherSans-Regular",
