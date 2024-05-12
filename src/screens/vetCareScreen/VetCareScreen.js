@@ -1,3 +1,17 @@
+/**
+ * VetCareScreen
+ * -------------
+ *  • Chat interface (Gifted‑Chat) where the user can ask “VetBot” anything
+ *    about their dog’s health, nutrition or training.
+ *  • Pulls context (dog profile, latest health‑goals and today’s feed‑log)
+ *    from Firestore and stores a rolling `conversationHistory` so the
+ *    OpenAI endpoint can give contextual answers.
+ *  • Detects simple “update weight” intents inside user messages, shows a
+ *    confirmation modal, then updates both the dog profile and its latest
+ *    health‑goal document (including re‑generating macros).
+ *
+ */
+
 import React, { useState, useCallback, useEffect } from "react";
 import {
   View,
