@@ -21,12 +21,13 @@ import {
   Modal,
   TouchableOpacity,
 } from "react-native";
+
 import { GiftedChat, Bubble, Send } from "react-native-gifted-chat";
-import { images } from "../../constants/index";
 import Icon from "react-native-vector-icons/Ionicons";
+import images from "../../constants/index"; // assets
 import { fetchVetAdvice } from "../../../OpenAIService";
 import { promptVetCare } from "../../AIHelper/VetCarePrompt";
-import { CommonActions, useFocusEffect } from "@react-navigation/native";
+
 import { format } from "date-fns";
 import { db } from "../../../firebaseConfig";
 import {
