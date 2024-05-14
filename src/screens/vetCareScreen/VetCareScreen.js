@@ -43,85 +43,76 @@ import {
 } from "firebase/firestore";
 import * as SecureStore from "expo-secure-store";
 import { generateHealthGoals } from "../../AIHelper/DogDataFormatterForAI";
+import { useFocusEffect } from "@react-navigation/native";
 
+/* ---------------------------------------------------------------- constants */
+const initialFeedLogs = {
+  meals: [],
+  activities: [],
+  work: { name: "Not working", duration: 0, calories: 0, time: 0 },
+  mealsCalories: 0,
+  treatsCalories: 0,
+  activityCalories: 0,
+  workCalories: 0,
+  remainingCalories: 0,
+};
+
+/* ====================================================== component ========= */
 const VetCareScreen = () => {
+  /* --------------------------------------------------------------- state */
   const [messages, setMessages] = useState([]);
-  const [selectedDate, setSelectedDate] = useState(new Date());
-  const [healthGoals, setHealthGoals] = useState(null);
-  const [dogInfo, setDogInfo] = useState([]);
-  const initialFeedLogs = {
-    meals: [],
-    activities: [],
-    work: {
-      name: dogInfo.isWorkingDog ? dogInfo.workType : "Not working",
-      duration: 0,
-      calories: 0,
-      time: 0,
-    },
-    mealsCalories: 0,
-    treatsCalories: 0,
-    activityCalories: 0,
-    workCalories: 0,
-    remainingCalories: 0,
-  };
-  const [feedLogs, setFeedLogs] = useState(initialFeedLogs);
   const [conversationHistory, setConversationHistory] = useState([]);
   const [isAITyping, setIsAITyping] = useState(false);
+
+  const [selectedDate] = useState(new Date()); // today
+  const [healthGoals, setHealthGoals] = useState(null);
+  const [dogInfo, setDogInfo] = useState(null);
+  const [feedLogs, setFeedLogs] = useState(initialFeedLogs);
+
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
   const [pendingUpdate, setPendingUpdate] = useState(null);
 
+  /* ------------------------------------------- Firestore: profile & goals */
   useFocusEffect(
     useCallback(() => {
-      async function fetchDogInfoAndGoals() {
+      const fetchDogInfoAndGoals = async () => {
         const userId = await SecureStore.getItemAsync("userId");
         const activeDogProfile = await SecureStore.getItemAsync(
           "activeDogProfile"
         );
-        if (!userId || !activeDogProfile) {
-          console.log("User ID or active dog profile missing");
-          return;
-        }
+        if (!userId || !activeDogProfile) return console.log("Missing IDs");
 
+        /* active dog profile ------------------------------------------ */
         const dogRef = doc(db, `users/${userId}/dogs/${activeDogProfile}`);
         const dogSnap = await getDoc(dogRef);
+        if (!dogSnap.exists()) return console.log("Dog profile not found");
+        const info = dogSnap.data();
+        setDogInfo(info);
 
-        if (dogSnap.exists()) {
-          setDogInfo(dogSnap.data());
-        } else {
-          console.log("No such document for dog info!");
-          return;
-        }
-
+        /* latest health‑goals ----------------------------------------- */
         const goalsQuery = query(
           collection(dogRef, "healthGoals"),
           orderBy("createdAt", "desc"),
           limit(1)
         );
         const goalsSnap = await getDocs(goalsQuery);
-        if (!goalsSnap.empty) {
-          const goalsData = goalsSnap.docs[0].data();
-          setHealthGoals(goalsData);
-        } else {
-          console.log("No health goals found");
-        }
-      }
+        if (goalsSnap.empty) return console.log("No health goals");
+        setHealthGoals(goalsSnap.docs[0].data());
+      };
 
       fetchDogInfoAndGoals();
     }, [])
   );
 
+  /* ---------------------------------------- Firestore: today’s feed‑log */
   useFocusEffect(
     useCallback(() => {
-      async function fetchFeedLogs() {
+      const fetchFeedLogs = async () => {
         const userId = await SecureStore.getItemAsync("userId");
         const activeDogProfile = await SecureStore.getItemAsync(
           "activeDogProfile"
         );
-        if (!userId || !activeDogProfile) {
-          console.log("User ID or active dog profile missing");
-          return;
-        }
-        if (!dogInfo || !selectedDate || !healthGoals) return;
+        if (!userId || !activeDogProfile || !dogInfo) return;
 
         const formattedDate = format(selectedDate, "yyyy-MM-dd");
         const feedLogRef = doc(
