@@ -120,370 +120,255 @@ const VetCareScreen = () => {
           `users/${userId}/dogs/${activeDogProfile}/feedLog/${formattedDate}`
         );
 
-        const feedLogSnap = await getDoc(feedLogRef);
-
-        if (feedLogSnap.exists()) {
-          setFeedLogs(feedLogSnap.data().logs || []);
-        } else {
-          console.log("No feed log found for the selected date");
-          setFeedLogs([]);
-        }
-      }
+        const snap = await getDoc(feedLogRef);
+        setFeedLogs(snap.exists() ? snap.data().logs : []);
+      };
 
       fetchFeedLogs();
     }, [selectedDate, dogInfo])
   );
 
+  /* ------------------------------------------- Firestore: daily‑log doc */
   useFocusEffect(
     useCallback(() => {
-      async function initializeOrFetchDailyLog() {
-        if (dogInfo && healthGoals) {
-          const initializeOrFetchDailyLog = async () => {
-            const userId = await SecureStore.getItemAsync("userId");
-            const activeDogProfile = await SecureStore.getItemAsync(
-              "activeDogProfile"
-            );
-            const formattedDate = format(selectedDate, "yyyy-MM-dd");
+      if (!dogInfo || !healthGoals) return;
+      const initDailyLog = async () => {
+        const userId = await SecureStore.getItemAsync("userId");
+        const activeDogProfile = await SecureStore.getItemAsync(
+          "activeDogProfile"
+        );
+        const formattedDate = format(selectedDate, "yyyy-MM-dd");
 
-            const dailyLogRef = doc(
-              db,
-              `users/${userId}/dogs/${activeDogProfile}/dailyLogs/${formattedDate}`
-            );
+        const dailyLogRef = doc(
+          db,
+          `users/${userId}/dogs/${activeDogProfile}/dailyLogs/${formattedDate}`
+        );
+        const snap = await getDoc(dailyLogRef);
 
-            const dailyLogSnap = await getDoc(dailyLogRef);
-
-            if (!dailyLogSnap.exists()) {
-              await setDoc(dailyLogRef, {
-                remainingCalories: parseFloat(
-                  healthGoals.dailyCalories
-                ).toFixed(0),
-                remainingProteinGrams: parseFloat(
-                  (
-                    (healthGoals.dailyCalories * healthGoals.dailyProtein) /
-                    100 /
-                    4
-                  ).toFixed(0)
-                ),
-                remainingFatGrams: parseFloat(
-                  (healthGoals.dailyCalories * healthGoals.dailyFat) / 100 / 9
-                ).toFixed(0),
-                remainingCarbsGrams: parseFloat(
-                  (
-                    (healthGoals.dailyCalories * healthGoals.dailyCarbs) /
-                    100 /
-                    4
-                  ).toFixed(0)
-                ),
-                mealsCalories: 0,
-                treatsCalories: 0,
-                activityCalories: 0,
-                workCalories: 0,
-                meals: [],
-                treats: [],
-                activities: [],
-                work: {
-                  name: dogInfo.isWorkingDog ? dogInfo.workType : "Not working",
-                  duration: 0,
-                  calories: 0,
-                  time: 0,
-                },
-              });
-            } else {
-              setFeedLogs(dailyLogSnap.data());
-            }
-          };
-
-          initializeOrFetchDailyLog();
+        if (!snap.exists()) {
+          await setDoc(dailyLogRef, {
+            ...initialFeedLogs,
+            remainingCalories: healthGoals.dailyCalories.toFixed(0),
+            remainingProteinGrams: (
+              (healthGoals.dailyCalories * healthGoals.dailyProtein) /
+              100 /
+              4
+            ).toFixed(0),
+            remainingFatGrams: (
+              (healthGoals.dailyCalories * healthGoals.dailyFat) /
+              100 /
+              9
+            ).toFixed(0),
+            remainingCarbsGrams: (
+              (healthGoals.dailyCalories * healthGoals.dailyCarbs) /
+              100 /
+              4
+            ).toFixed(0),
+            work: {
+              name: dogInfo.isWorkingDog ? dogInfo.workType : "Not working",
+              duration: 0,
+              calories: 0,
+              time: 0,
+            },
+          });
+        } else {
+          setFeedLogs(snap.data());
         }
-      }
-
-      initializeOrFetchDailyLog();
+      };
+      initDailyLog();
     }, [selectedDate, dogInfo, healthGoals])
   );
 
-  //chat code from here
-
+  /* ------------------------------------------------ initial bot greeting */
   useEffect(() => {
     setMessages([
       {
         _id: 1,
         text: "Hello! How can I assist you with your dog today?",
         createdAt: new Date(),
-        user: {
-          _id: 2,
-          name: "VetBot",
-          avatar: images.logo_icon2,
-        },
+        user: { _id: 2, name: "VetBot", avatar: images.logo_icon2 },
       },
     ]);
   }, []);
 
+  /* ---------------------------------------------------------- send logic */
   const onSend = useCallback(
-    async (messages = []) => {
-      if (!dogInfo || !healthGoals) {
-        console.error("Dog info or health goals not loaded yet.");
-        return;
-      }
+    async (msgs = []) => {
+      if (!dogInfo || !healthGoals) return;
 
-      setIsAITyping(true);
+      setIsAITyping(true); // UI “typing” indicator
+      const userText = msgs[0].text;
 
-      const userMessageText = messages[0].text;
-      const recognizedIntent = recognizeUpdateWeightIntent(userMessageText);
-
-      if (recognizedIntent && recognizedIntent.intent === "UPDATE_WEIGHT") {
-        setPendingUpdate({ weight: recognizedIntent.weight });
+      /* simple NLP – detect “update weight” --------------------------- */
+      const intent = recogniseUpdateWeightIntent(userText);
+      if (intent) {
+        setPendingUpdate({ weight: intent.weight });
         setShowConfirmationModal(true);
       }
 
-      const newUserMessage = {
-        role: "user",
-        content: messages[0].text,
-      };
+      /* build conversation context for OpenAI ------------------------ */
+      const newUserMsg = { role: "user", content: userText };
+      const history = conversationHistory.length
+        ? [...conversationHistory, newUserMsg]
+        : [
+            {
+              role: "system",
+              content: promptVetCare(dogInfo, healthGoals, feedLogs, ""),
+            },
+            newUserMsg,
+          ];
 
-      let updatedConversationHistory = [...conversationHistory];
-      if (conversationHistory.length === 0) {
-        const dogContextMessage = {
-          role: "system",
-          content: promptVetCare(dogInfo, healthGoals, feedLogs, ""),
-        };
-        updatedConversationHistory.unshift(dogContextMessage);
-      }
+      /* 1) append user message locally ------------------------------- */
+      setMessages((prev) => GiftedChat.append(prev, msgs));
 
-      updatedConversationHistory.push(newUserMessage);
-
-      setMessages((previousMessages) =>
-        GiftedChat.append(previousMessages, messages)
-      );
-
+      /* 2) fetch AI reply ------------------------------------------- */
       try {
-        const aiResponse = await fetchVetAdvice(updatedConversationHistory);
-        const aiMessage = {
-          _id: Math.random().toString(36).substring(7),
-          text: aiResponse,
+        const aiText = await fetchVetAdvice(history);
+        const aiMsg = {
+          _id: Math.random().toString(36).substr(2, 9),
+          text: aiText,
           createdAt: new Date(),
-          user: {
-            _id: 2,
-            name: "VetBot",
-            avatar: images.logo_icon2,
-          },
+          user: { _id: 2, name: "VetBot", avatar: images.logo_icon2 },
         };
-
-        setMessages((previousMessages) =>
-          GiftedChat.append(previousMessages, [aiMessage])
-        );
+        setMessages((prev) => GiftedChat.append(prev, [aiMsg]));
         setConversationHistory([
-          ...updatedConversationHistory,
-          { role: "assistant", content: aiResponse },
+          ...history,
+          { role: "assistant", content: aiText },
         ]);
-
-        setIsAITyping(false);
-      } catch (error) {
-        console.error("Failed to fetch AI response:", error);
+      } catch (err) {
+        console.error("AI error:", err);
+      } finally {
         setIsAITyping(false);
       }
     },
-    [dogInfo, healthGoals, feedLogs, conversationHistory, setIsAITyping]
+    [dogInfo, healthGoals, feedLogs, conversationHistory]
   );
 
-  const recognizeUpdateWeightIntent = (message) => {
+  /* ------------------------------------------ weight update helpers */
+  const recogniseUpdateWeightIntent = (text) => {
     const patterns = [
-      /weight of the dog to (\d+)\s*(?:kg)?/i,
-      /dog's weight to (\d+)\s*(?:kg)?/i,
-      /dog weighs? (\d+)\s*(?:kg)?/i,
-      /dog's weight? (\d+)\s*(?:kg)?/i,
-      /dog is now (\d+)\s*(?:kg)?/i,
-      /dog's weight changed.*? to (\d+)\s*(?:kg)?/i,
-      /make the dog weigh (\d+)\s*(?:kg)?/i,
-      /set the dog's weight to (\d+)\s*(?:kg)?/i,
-      /update the dog's weight to (\d+)\s*(?:kg)?/i,
-      /weight to (\d+)\s*/i,
-      /weighs? (\d+)\s*/i,
-      /weight? (\d+)\s*/i,
-      /is now (\d+)\s*/i,
-      /changed.*? to (\d+)\s*/i,
+      /weight.*? to (\d+)\s*kg?/i,
+      /dog.*? weighs? (\d+)\s*kg?/i,
+      /is now (\d+)\s*kg?/i,
     ];
-
-    for (const pattern of patterns) {
-      const match = message.match(pattern);
-      if (match) {
-        return {
-          intent: "UPDATE_WEIGHT",
-          weight: parseInt(match[1], 10),
-        };
-      }
+    for (const p of patterns) {
+      const m = text.match(p);
+      if (m) return { intent: "UPDATE_WEIGHT", weight: parseInt(m[1], 10) };
     }
-
     return null;
   };
 
   const handleUpdateWeight = async (newWeight) => {
     const userId = await SecureStore.getItemAsync("userId");
     const activeDogProfile = await SecureStore.getItemAsync("activeDogProfile");
+    if (!userId || !activeDogProfile) return;
+
+    /* optimistic chat feedback */
+    appendBotMessage(
+      `Ok, I am updating ${activeDogProfile}'s weight to ${newWeight} kg.`
+    );
+
     try {
-      const updatingMessage = {
-        _id: Math.random().toString(36).substring(7),
-        text: `Ok, I am updating ${activeDogProfile}'s weight to ${newWeight} kg.`,
-        createdAt: new Date(),
-        user: {
-          _id: 2, // AI's ID
-          name: "VetBot",
-          avatar: images.logo_icon2,
-        },
-      };
-      setMessages((previousMessages) =>
-        GiftedChat.append(previousMessages, [updatingMessage])
-      );
-
       await updateDogProfile(newWeight);
-
-      const successMessage = {
-        _id: Math.random().toString(36).substring(7),
-        text: "The weight has been updated successfully!",
-        createdAt: new Date(),
-        user: {
-          _id: 2, // AI's ID
-          name: "VetBot",
-          avatar: images.logo_icon2,
-        },
-      };
-      setMessages((previousMessages) =>
-        GiftedChat.append(previousMessages, [successMessage])
-      );
-    } catch (error) {
-      console.error("Error updating weight:", error);
-
-      const errorMessage = {
-        _id: Math.random().toString(36).substring(7),
-        text: "Sorry, there was a problem updating the weight. Please try again later.",
-        createdAt: new Date(),
-        user: {
-          _id: 2, // AI's ID
-          name: "VetBot",
-          avatar: images.logo_icon2,
-        },
-      };
-      setMessages((previousMessages) =>
-        GiftedChat.append(previousMessages, [errorMessage])
-      );
+      appendBotMessage("The weight has been updated successfully!");
+    } catch (err) {
+      console.error("Update weight error:", err);
+      appendBotMessage("Sorry, there was a problem updating the weight.");
     }
   };
+
+  const appendBotMessage = (text) =>
+    setMessages((prev) =>
+      GiftedChat.append(prev, [
+        {
+          _id: Math.random().toString(36).substr(2, 9),
+          text,
+          createdAt: new Date(),
+          user: { _id: 2, name: "VetBot", avatar: images.logo_icon2 },
+        },
+      ])
+    );
 
   const updateDogProfile = async (newWeight) => {
     const userId = await SecureStore.getItemAsync("userId");
     const activeDogProfile = await SecureStore.getItemAsync("activeDogProfile");
+    const profileRef = doc(db, `users/${userId}/dogs/${activeDogProfile}`);
 
-    if (!userId || !activeDogProfile) {
-      console.error("User ID or dog profile is missing");
-      return;
-    }
+    /* 1) update weight in profile ------------------------------------ */
+    await updateDoc(profileRef, { dogWeight: newWeight });
 
-    const dogProfileRef = doc(db, `users/${userId}/dogs/${activeDogProfile}`);
+    /* 2) update latest health‑goals doc ------------------------------ */
+    const goalsSnap = await getDocs(collection(profileRef, "healthGoals"));
+    if (goalsSnap.empty) return;
+    const goalRef = goalsSnap.docs[0].ref;
+    await updateDoc(goalRef, { currentWeight: newWeight });
 
-    const dogSnap = await getDoc(dogProfileRef);
-    if (!dogSnap.exists()) {
-      console.error("Dog profile not found");
-      return;
-    }
-    const currentDogInfo = dogSnap.data();
-
-    await updateDoc(dogProfileRef, {
+    /* 3) re‑calculate derived targets (calories etc.) ---------------- */
+    const updatedDogInfo = {
+      ...(await getDoc(profileRef)).data(),
       dogWeight: newWeight,
-    });
-
-    const healthGoalsCollectionRef = collection(dogProfileRef, "healthGoals");
-    const querySnapshot = await getDocs(healthGoalsCollectionRef);
-    if (querySnapshot.docs.length > 0) {
-      const healthGoalDoc = querySnapshot.docs[0];
-      await updateDoc(healthGoalDoc.ref, {
-        currentWeight: newWeight,
-      });
-
-      const updatedDogInfo = { ...currentDogInfo, dogWeight: newWeight };
-
-      const createdHealthGoals = generateHealthGoals(updatedDogInfo);
-
-      await updateDoc(healthGoalDoc.ref, createdHealthGoals);
-    } else {
-      console.log("No health goals found for this dog");
-    }
+    };
+    await updateDoc(goalRef, generateHealthGoals(updatedDogInfo));
   };
 
+  /* ------------------------------------------------------------------ UI */
   return (
     <>
+      {/* ---------------- Chat Area ---------------- */}
       <View style={styles.container}>
         <View style={styles.topBar}>
           <Text style={styles.topBarText}>Vet Care Chat</Text>
         </View>
-        <View style={styles.chatContainer}>
-          <GiftedChat
-            messages={messages}
-            onSend={(messages) => onSend(messages)}
-            showAvatarForEveryMessage={true}
-            renderAvatar={(props) => (
-              <View style={styles.avatarContainer}>
-                <Image
-                  source={
-                    props.currentMessage.user._id === 2
-                      ? props.currentMessage.user.avatar
-                      : undefined
-                  }
-                  style={styles.avatarStyle}
-                />
+
+        <GiftedChat
+          messages={messages}
+          onSend={onSend}
+          user={{ _id: 1 }}
+          isTyping={isAITyping}
+          showAvatarForEveryMessage
+          messagesContainerStyle={{ backgroundColor: "#E6ECFC" }}
+          textInputStyle={{ backgroundColor: "#fff", borderRadius: 20 }}
+          /* customise bubbles */
+          renderBubble={(props) => (
+            <Bubble
+              {...props}
+              wrapperStyle={{
+                right: { backgroundColor: "#273176" },
+                left: { backgroundColor: "#181C39" },
+              }}
+              textStyle={{ right: { color: "#fff" }, left: { color: "#fff" } }}
+            />
+          )}
+          /* send button */
+          renderSend={(props) => (
+            <Send {...props}>
+              <View style={{ marginRight: 10, marginBottom: 5 }}>
+                <Icon name="send" size={30} color="#0084ff" />
               </View>
-            )}
-            messagesContainerStyle={{
-              backgroundColor: "#E6ECFC",
-            }}
-            textInputStyle={{
-              backgroundColor: "#fff",
-              borderRadius: 20,
-            }}
-            renderBubble={(props) => (
-              <Bubble
-                {...props}
-                wrapperStyle={{
-                  right: {
-                    backgroundColor: "#273176",
-                  },
-                  left: {
-                    backgroundColor: "#181C39",
-                  },
-                }}
-                textStyle={{
-                  right: {
-                    color: "#fff",
-                  },
-                  left: {
-                    color: "#fff",
-                  },
-                }}
-              />
-            )}
-            renderSend={(props) => (
-              <Send {...props}>
-                <View style={{ marginRight: 10, marginBottom: 5 }}>
-                  <Icon name="send" size={30} color="#0084ff" />
-                </View>
-              </Send>
-            )}
-            user={{
-              _id: 1,
-            }}
-            isTyping={isAITyping}
-          />
-        </View>
+            </Send>
+          )}
+          /* custom avatar (only for VetBot) */
+          renderAvatar={(props) => (
+            <View style={styles.avatarContainer}>
+              {props.currentMessage.user._id === 2 && (
+                <Image source={images.logo_icon2} style={styles.avatarStyle} />
+              )}
+            </View>
+          )}
+        />
       </View>
 
+      {/* -------- Weight‑update confirmation modal -------- */}
       <Modal
         visible={showConfirmationModal}
-        onRequestClose={() => setShowConfirmationModal(false)}
+        transparent
         animationType="slide"
-        transparent={true}
+        onRequestClose={() => setShowConfirmationModal(false)}
       >
         <View style={styles.centeredView}>
           <View style={styles.modalView}>
             <Text style={styles.h1}>
-              Do you want to update the weight to {pendingUpdate?.weight} kg?
+              Update weight to {pendingUpdate?.weight} kg?
             </Text>
             <View style={styles.buttonsContainer}>
               <TouchableOpacity
