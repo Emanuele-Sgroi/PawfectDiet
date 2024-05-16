@@ -382,9 +382,7 @@ const VetCareScreen = () => {
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.button}
-                onPress={() => {
-                  setShowConfirmationModal(false);
-                }}
+                onPress={() => setShowConfirmationModal(false)}
               >
                 <Text style={styles.h2}>No</Text>
               </TouchableOpacity>
