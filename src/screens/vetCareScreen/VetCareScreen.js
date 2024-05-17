@@ -394,41 +394,26 @@ const VetCareScreen = () => {
   );
 };
 
+/* ---------------------------------------------------------------- styles */
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: "flex-start",
-    alignItems: "center",
-    backgroundColor: "#E6ECFC",
-  },
+  container: { flex: 1, backgroundColor: "#E6ECFC" },
   topBar: {
-    padding: 10,
-    width: "100%",
     height: 70,
-    backgroundColor: "#181C39",
     paddingTop: 30,
     paddingHorizontal: 15,
     backgroundColor: "#181C39",
   },
   topBarText: {
-    fontWeight: "bold",
     fontSize: 20,
-    marginLeft: 20,
     fontFamily: "MerriweatherSans-Bold",
-    color: "#ffffff",
+    color: "#fff",
   },
-  chatContainer: {
-    flex: 1,
-    width: "100%",
-  },
+
   avatarContainer: {
     width: 60,
     height: 60,
     padding: 10,
     borderRadius: 30,
-    overflow: "hidden",
-    justifyContent: "center",
-    alignItems: "center",
     backgroundColor: "#181C39",
   },
   avatarStyle: {
@@ -438,40 +423,25 @@ const styles = StyleSheet.create({
     transform: [{ rotateZ: "36deg" }],
   },
 
-  //modal
-  centeredView: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    marginTop: 22,
-  },
+  /* modal */
+  centeredView: { flex: 1, justifyContent: "center", alignItems: "center" },
   modalView: {
     margin: 20,
-    backgroundColor: "white",
+    backgroundColor: "#fff",
     borderRadius: 20,
     padding: 35,
     alignItems: "center",
     shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 4,
     elevation: 8,
   },
-  buttonsContainer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    gap: 30,
-    marginTop: 40,
-  },
+  buttonsContainer: { flexDirection: "row", gap: 30, marginTop: 40 },
   button: {
     width: 60,
     height: 60,
     backgroundColor: "#273176",
-    padding: 5,
     justifyContent: "center",
     alignItems: "center",
   },
