@@ -72,7 +72,7 @@ export default function App() {
              } else if (route.name === "Vet Care") {
                imageSource = focused ? images.vet_care : images.vet_care_un;
              } else if (route.name === "Saved Food") {
-            //   imageSource = focused ? images.saved_food : images.saved_food_un;
+             imageSource = focused ? images.saved_food : images.saved_food_un;
             // } else if (route.name === "More") {
             //   imageSource = focused ? images.menu_more : images.menu_more_un;
             // }
