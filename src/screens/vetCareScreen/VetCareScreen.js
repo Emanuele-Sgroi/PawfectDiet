@@ -451,13 +451,7 @@ const styles = StyleSheet.create({
     color: "#273176",
     textAlign: "center",
   },
-  h2: {
-    fontFamily: "MerriweatherSans-ExtraBold",
-    fontSize: 18,
-    color: "#fff",
-    textAlign: "center",
-    marginBottom: 2,
-  },
+  h2: { fontFamily: "MerriweatherSans-ExtraBold", fontSize: 18, color: "#fff" },
 });
 
 export default VetCareScreen;
