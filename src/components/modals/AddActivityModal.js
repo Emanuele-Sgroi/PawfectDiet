@@ -4,7 +4,7 @@
   A reusable modal that lets the user pick a dog activity, specify its
   duration, calculates the estimated calories burned (based on MET values
   + the dog’s weight) and passes the result back to the parent via
-  `onAddActivity`.
+  `onAddActivity`
 */
 
 import React, { useState, useEffect } from "react";
