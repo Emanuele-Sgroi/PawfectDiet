@@ -1,8 +1,23 @@
+/*
+  Stopwatch.js
+  ------------
+  Simple HH:MM:SS stopwatch used in the *Work* section
+  of the Feed‑Log screen.
+
+  Props
+  -----
+  • elapsedTime (number)           – current elapsed time in **seconds**  
+  • setElapsedTime (fn)            – setter from parent so we keep single source‑of‑truth  
+  • manualTimeInSeconds (number)   – optional preset (e.g. “set time” workflow)  
+  • handleStop (fn)                – called when user pauses; parent receives final seconds  
+  • handleReset (fn)               – resets parent‑state & kcal calculations
+*/
+
 import React, { useState, useEffect } from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
-import AntDesign from "react-native-vector-icons/AntDesign"; //play
-import FontAwesome from "react-native-vector-icons/FontAwesome"; //stop-circle - pause-circle
-import Ionicons from "react-native-vector-icons/Ionicons"; //refresh-circle
+import AntDesign from "react-native-vector-icons/AntDesign"; // play
+import FontAwesome from "react-native-vector-icons/FontAwesome"; // pause‑circle
+import Ionicons from "react-native-vector-icons/Ionicons"; // refresh‑circle
 
 const Stopwatch = ({
   elapsedTime,
@@ -13,81 +28,80 @@ const Stopwatch = ({
 }) => {
   const [isRunning, setIsRunning] = useState(false);
 
+  /* ---------------------------------------------------------------- sync preset */
   useEffect(() => {
     if (manualTimeInSeconds !== null) {
       setElapsedTime(manualTimeInSeconds);
     }
   }, [manualTimeInSeconds, setElapsedTime]);
 
+  /* ---------------------------------------------------------------- tick interval */
   useEffect(() => {
-    let interval;
+    let id;
     if (isRunning) {
-      interval = setInterval(() => {
-        setElapsedTime((prevTime) => prevTime + 1);
-      }, 1000);
+      id = setInterval(() => setElapsedTime((t) => t + 1), 1000);
     }
-    return () => clearInterval(interval);
+    return () => clearInterval(id);
   }, [isRunning, setElapsedTime]);
 
-  const handleStartStop = () => {
-    if (!isRunning) {
-      setIsRunning(true);
-    } else {
+  /* ---------------------------------------------------------------- handlers */
+  const toggleRun = () => {
+    if (isRunning) {
       setIsRunning(false);
       handleStop(elapsedTime);
+    } else {
+      setIsRunning(true);
     }
   };
 
-  const formatTime = (timeInSeconds) => {
-    const hours = Math.floor(timeInSeconds / 3600);
-    const minutes = Math.floor((timeInSeconds % 3600) / 60);
-    const seconds = timeInSeconds % 60;
-
-    return `${hours.toString().padStart(2, "0")}:${minutes
+  const format = (sec) => {
+    const h = Math.floor(sec / 3600)
       .toString()
-      .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+      .padStart(2, "0");
+    const m = Math.floor((sec % 3600) / 60)
+      .toString()
+      .padStart(2, "0");
+    const s = (sec % 60).toString().padStart(2, "0");
+    return `${h}:${m}:${s}`;
   };
 
+  /* ---------------------------------------------------------------- render */
   return (
-    <View style={styles.stopwatchContainer}>
-      <View style={styles.buttonsContainer}>
-        {isRunning ? (
-          <TouchableOpacity onPress={handleStartStop}>
+    <View style={styles.container}>
+      <View style={styles.controls}>
+        <TouchableOpacity onPress={toggleRun}>
+          {isRunning ? (
             <FontAwesome name="pause-circle" size={28} color="#273176" />
-          </TouchableOpacity>
-        ) : (
-          <TouchableOpacity onPress={handleStartStop}>
+          ) : (
             <AntDesign name="play" size={28} color="#273176" />
-          </TouchableOpacity>
-        )}
+          )}
+        </TouchableOpacity>
+
         <TouchableOpacity onPress={handleReset}>
           <Ionicons name="refresh-circle" size={30} color="#273176" />
         </TouchableOpacity>
       </View>
 
-      <Text style={styles.stopwatchText}>{formatTime(elapsedTime)}</Text>
+      <Text style={styles.time}>{format(elapsedTime)}</Text>
     </View>
   );
 };
 
+/* ---------------------------------------------------------------- styles */
 const styles = StyleSheet.create({
-  stopwatchContainer: {
+  container: {
     width: "100%",
     alignItems: "center",
-    justifyContent: "center",
     marginTop: 15,
   },
-  stopwatchText: {
+  controls: {
+    flexDirection: "row",
+    gap: 25,
+  },
+  time: {
     fontSize: 24,
     fontWeight: "bold",
     marginTop: 10,
-  },
-  buttonsContainer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    gap: 25,
-    width: "100%",
   },
 });
 
