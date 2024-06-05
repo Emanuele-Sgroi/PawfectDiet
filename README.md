@@ -6,11 +6,11 @@
 
 ## Introduction
 
-Welcome to **Pawfect Diet**! This project is the culmination of my dissertation work for the BSc (Hons) Computer Science program at the University of West London. Pawfect Diet is an innovative mobile application designed to revolutionize canine nutrition management through AI-driven personalized solutions. 
+Welcome to **Pawfect Diet**! This project is the culmination of my dissertation work for the BSc (Hons) Computer Science program at the University of West London. Pawfect Diet is an innovative mobile application designed to revolutionize canine nutrition management through AI-driven personalized solutions.
 
 Built using React Native Expo, Pawfect Diet leverages AI technologies for canine dietary recommendations and TensorFlow for breed recognition. This app aims to provide dog owners with precise, personalized dietary advice to enhance their pets' health and well-being.
 
-Whether you're a new pet owner or a seasoned dog lover, Pawfect Diet offers a user-friendly experience enriched with features that adapt to your dog's unique needs.
+Whether you're a new pet owner or a seasoned dog lover, Pawfect Diet offers a user-friendly experience enriched with features that adapt to your dog's unique needs
 
 **Note**: Pawfect Diet is currently in a test version, fully functional but still under active development. I am planning to continue enhancing the app by adding more features and improving the existing ones.
 
@@ -61,13 +61,17 @@ To get started with Pawfect Diet, follow these steps:
    ```
 
 ## Usage
+
 To run the application, use the following command:
+
 ```
 npx expo start
 ```
+
 Ensure you have an emulator set up with the Expo Go app to run the application. You can use either an Android or iOS emulator:
 
 1. Android Emulator:
+
    - Install Android Studio and set up an Android Virtual Device (AVD).
    - Download and install the Expo Go app from the Google Play Store on the emulator.
 
@@ -105,6 +109,5 @@ Contributions is very appreciated to enhance Pawfect Diet's features and functio
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE.md) file for details.
-
 
 **THANK YOU**
