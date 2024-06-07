@@ -10,7 +10,7 @@ Welcome to **Pawfect Diet**! This project is the culmination of my dissertation 
 
 Built using React Native Expo, Pawfect Diet leverages AI technologies for canine dietary recommendations and TensorFlow for breed recognition. This app aims to provide dog owners with precise, personalized dietary advice to enhance their pets' health and well-being.
 
-Whether you're a new pet owner or a seasoned dog lover, Pawfect Diet offers a user-friendly experience enriched with features that adapt to your dog's unique needs.
+Whether you're a new pet owner or a seasoned dog lover, Pawfect Diet offers a user-friendly experience enriched with features that adapt to your dog's unique needs
 
 **Note**: Pawfect Diet is currently in a test version, fully functional but still under active development. I am planning to continue enhancing the app by adding more features and improving the existing ones.
 
