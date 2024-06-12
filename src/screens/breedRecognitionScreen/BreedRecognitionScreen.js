@@ -36,7 +36,7 @@ const BreedRecognitionScreen = ({ navigation }) => {
   const [uploadedPhoto, setUploadedPhoto] = useState(null);
   const [loading, setLoading] = useState(false);
   const [predictionView, setPredictionView] = useState(false);
-  const [model, setModel] = useState(null);
+  //const [model, setModel] = useState(null);
   const [breedsPredicted, setBreedPredicted] = useState([]);
   const [highestBreedPredicted, setHighestBreedPredicted] = useState("");
 
@@ -54,9 +54,43 @@ const BreedRecognitionScreen = ({ navigation }) => {
     "Doberman",
   ];
 
+  /////////////////////////////////////////////
+
+  const [model, setModel] = useState(null);
+
+  useEffect(() => {
+    const loadModel = async () => {
+      await tf.ready();
+      const modelJson = require("../../beedRecognitionModel/model.json");
+      const modelWeights = require("../../beedRecognitionModel/weights.bin");
+      const model = await tf.loadLayersModel(
+        bundleResourceIO(modelJson, modelWeights)
+      );
+      setModel(model);
+    };
+
+    loadModel();
+  }, []);
+
+  async function predictImage(imageUrl) {
+    if (!model) return;
+
+    const response = await fetch(imageUrl, {}, { isBinary: true });
+    const imageData = await response.arrayBuffer();
+    const imageTensor = decodeJpeg(new Uint8Array(imageData));
+    const processedTensor = imageTensor
+      .resizeBilinear([224, 224])
+      .expandDims(0)
+      .toFloat()
+      .div(tf.scalar(255));
+    const prediction = await model.predict(processedTensor).data();
+    // Processing and setting the prediction result here...
+  }
+
+  ////////////////////////////
+
   useEffect(() => {
     let isMounted = true;
-
     const loadModel = async () => {
       await tf.ready();
       const modelJson = require("../../beedRecognitionModel/model.json");
@@ -113,7 +147,6 @@ const BreedRecognitionScreen = ({ navigation }) => {
     }
 
     try {
-      L;
       const response = await fetch(imageUrl, {}, { isBinary: true });
       const imageData = await response.arrayBuffer();
       const imageTensor = decodeJpeg(new Uint8Array(imageData));

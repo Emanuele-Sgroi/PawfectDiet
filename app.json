@@ -4,10 +4,11 @@
     "slug": "PawfectDiet",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./src/assets/icon.png",
+    "platforms": ["ios", "android"],
+    "icon": "./src/assets/logo_icon.png",
     "userInterfaceStyle": "light",
     "splash": {
-      "image": "./src/assets/splash.png",
+      "image": "./src/assets/logo_icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -17,13 +18,13 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./src/assets/adaptive-icon.png",
+        "foregroundImage": "./src/assets/logo_icon.png",
         "backgroundColor": "#ffffff"
       },
       "package": "com.emanuele.pawfectdiet"
     },
     "web": {
-      "favicon": "./src/assets/favicon.png"
+      "favicon": "./src/assets/logo_icon.png"
     },
     "plugins": ["expo-font", "expo-secure-store"],
     "extra": {
@@ -31,6 +32,12 @@
         "projectId": "7681adb9-3520-47a1-a9bb-b7451d9f62f2"
       }
     },
-    "scheme": "com.emanuele.pawfectdiet"
+    "scheme": "com.emanuele.pawfectdiet",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/7681adb9-3520-47a1-a9bb-b7451d9f62f2"
+    }
   }
 }

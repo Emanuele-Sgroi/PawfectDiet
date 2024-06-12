@@ -99,7 +99,7 @@ const HealthGoalsScreen = ({ navigation }) => {
                   <View style={styles.aiTitle}>
                     <Image source={images.chat} style={styles.aiImg} />
                     <Text style={styles.aiText}>
-                      AI-Set Health Goals for {dogInfo.dogName}
+                      Health Goals for {dogInfo.dogName}
                     </Text>
                   </View>
                   {dogInfo.isWorkingDog ? (
@@ -112,7 +112,7 @@ const HealthGoalsScreen = ({ navigation }) => {
                       <Text style={styles.strongText}>
                         {healthGoals.age.age} {healthGoals.age.unit}
                       </Text>
-                      , have been carefully determined by AI, considering both
+                      , have been carefully determined, considering both
                       breed-specific needs and the active lifestyle typical of
                       working dogs. These goals are tailored to the health
                       information you've provided. However, we recommend
@@ -128,11 +128,11 @@ const HealthGoalsScreen = ({ navigation }) => {
                       <Text style={styles.strongText}>
                         {healthGoals.age.age} {healthGoals.age.unit}
                       </Text>
-                      , have been thoughtfully established by AI, taking into
-                      account the health information you provided. While these
-                      goals are tailored to support your dog's well-being, we
-                      recommend consulting your veterinarian for personalized
-                      advice and confirmation.
+                      , have been thoughtfully established, taking into account
+                      the health information you provided. While these goals are
+                      tailored to support your dog's well-being, we recommend
+                      consulting your veterinarian for personalized advice and
+                      confirmation.
                     </Text>
                   )}
 

@@ -279,11 +279,12 @@ const FeedLogScreen = () => {
         healthGoals,
         feedLogs
       );
+
       const aiResponseString = await fetchAISuggestions(personalisedPlanAI);
-      // console.log("AI Response: ", aiResponseString); // Debugging
+      console.log("AI Response: ", aiResponseString); // Debugging
 
       const aiResponse = JSON.parse(aiResponseString);
-      //console.log("AI Response: ", aiResponse);
+      console.log("Formatted AI Response: ", aiResponse);
 
       calculateCalories(
         aiResponse.food,
@@ -1157,7 +1158,7 @@ const FeedLogScreen = () => {
                               feedLogs.workCalories >=
                               0
                               ? `Divide the food in 2 meals per day`
-                              : feedLogs.meals.length > 3 &&
+                              : feedLogs.meals.length > 2 &&
                                 parseFloat(healthGoals.dailyCalories).toFixed(
                                   0
                                 ) -
@@ -1171,7 +1172,7 @@ const FeedLogScreen = () => {
                                   feedLogs.workCalories >=
                                   0
                               ? `Divide the food in 3 or 4 meals per day`
-                              : `Calories exceed daily limit. Please adjust food intake.`}
+                              : `Calories exceed daily limit.`}
                           </Text>
                         </View>
                       )}
