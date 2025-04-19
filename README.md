@@ -1,6 +1,6 @@
 # Pawfect Diet
 
-The web-based demo will be available soon
+👉 [View The App Showcase Website](https://pawfect-diet-app-showcase.vercel.app/)
 
 ![Pawfect Diet Logo](app_preview.png)
 
